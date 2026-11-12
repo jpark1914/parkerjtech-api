@@ -1,0 +1,26 @@
+package com.parkerjtech.backendserviceapi.api;
+
+import java.io.IOException;
+import java.util.Map;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.ProblemDetail;
+import org.springframework.stereotype.Component;
+import tools.jackson.databind.json.JsonMapper;
+
+@Component
+public class ApiProblemWriter {
+    private final JsonMapper mapper;
+    public ApiProblemWriter(JsonMapper mapper) { this.mapper=mapper; }
+    public ProblemDetail problem(int status,String code,String detail) {
+        var problem=ProblemDetail.forStatusAndDetail(org.springframework.http.HttpStatusCode.valueOf(status),detail);
+        problem.setProperty("code",code);
+        problem.setProperty("fieldErrors",Map.of());
+        return problem;
+    }
+    public void write(HttpServletResponse response,int status,String code,String detail) throws IOException {
+        response.setStatus(status);
+        response.setContentType("application/problem+json");
+        response.setHeader("Cache-Control","no-store");
+        mapper.writeValue(response.getOutputStream(),problem(status,code,detail));
+    }
+}
