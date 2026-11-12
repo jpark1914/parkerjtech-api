@@ -46,6 +46,10 @@ public class ApiExceptionHandler {
     }
     @ExceptionHandler(Exception.class)
     ResponseEntity<ProblemDetail> unexpected(Exception ex) {
+        if(ex instanceof org.springframework.web.ErrorResponse error && error.getStatusCode().is4xxClientError()) {
+            return ResponseEntity.status(error.getStatusCode()).headers(error.getHeaders()).header("Cache-Control","no-store")
+                .body(problems.problem(error.getStatusCode().value(),"INVALID_REQUEST","Request cannot be handled by this endpoint."));
+        }
         // Log type, not input, SQL text, session identifiers or raw exception messages.
         LOG.error("Unexpected API failure of type {}",ex.getClass().getName());
         return response(problems.problem(500,"INTERNAL_ERROR","The request could not be completed."));

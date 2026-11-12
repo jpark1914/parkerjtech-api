@@ -20,10 +20,21 @@ public class LeadService {
     private final PriorityPolicy priorities;
     private final Clock clock;
     private final Validator validator;
+    private final WorkspaceService workspaceService;
     public LeadService(WorkspaceRepository workspaces,LeadRepository leads,TaskRepository tasks,
-            ActivityRepository activity,PriorityPolicy priorities,Clock clock,Validator validator) {
+            ActivityRepository activity,PriorityPolicy priorities,Clock clock,Validator validator,WorkspaceService workspaceService) {
         this.workspaces=workspaces; this.leads=leads; this.tasks=tasks; this.activity=activity;
-        this.priorities=priorities; this.clock=clock; this.validator=validator;
+        this.priorities=priorities; this.clock=clock; this.validator=validator; this.workspaceService=workspaceService;
+    }
+    @Transactional(readOnly=true)
+    public java.util.List<Lead> list(UUID workspaceId) {
+        workspaceService.requireActive(workspaceId);
+        return leads.list(workspaceId);
+    }
+    @Transactional(readOnly=true)
+    public Lead get(UUID workspaceId,UUID leadId) {
+        workspaceService.requireActive(workspaceId);
+        return leads.find(workspaceId,leadId).orElseThrow(() -> new ApiException(404,"LEAD_NOT_FOUND","Lead not found in this workspace."));
     }
     @Transactional
     public Lead create(UUID workspaceId,CreateLeadCommand command) {
