@@ -2,7 +2,7 @@
 
 Date: 2026-11-11
 Branch: `feature/smart-crm-first-itr`
-Status: Proposed design; awaiting owner approval
+Status: Approved by the owner on 2026-11-11; implementation not started
 
 ## Intent
 
