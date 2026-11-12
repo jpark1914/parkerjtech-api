@@ -1,4 +1,4 @@
-package com.parkerjtech.backendserviceapi.api;
+package com.parkerjtech.backendserviceapi.exception;
 
 public class ApiException extends RuntimeException {
     private final int status;

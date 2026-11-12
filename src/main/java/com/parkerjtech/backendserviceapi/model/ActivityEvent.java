@@ -1,4 +1,4 @@
-package com.parkerjtech.backendserviceapi.activity;
+package com.parkerjtech.backendserviceapi.model;
 import java.time.Instant;
 import java.util.UUID;
 public record ActivityEvent(UUID id, UUID workspaceId, UUID leadId, Type type,

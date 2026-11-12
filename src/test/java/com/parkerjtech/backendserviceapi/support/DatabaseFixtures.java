@@ -1,13 +1,16 @@
 package com.parkerjtech.backendserviceapi.support;
 
+import com.parkerjtech.backendserviceapi.model.ActivityEvent;
+import com.parkerjtech.backendserviceapi.model.CrmTask;
+import com.parkerjtech.backendserviceapi.model.DemoWorkspace;
+import com.parkerjtech.backendserviceapi.model.Lead;
+import com.parkerjtech.backendserviceapi.repository.LeadRepository;
+import com.parkerjtech.backendserviceapi.repository.WorkspaceRepository;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.Duration;
 import java.util.UUID;
-import com.parkerjtech.backendserviceapi.workspace.*;
-import com.parkerjtech.backendserviceapi.lead.*;
-import com.parkerjtech.backendserviceapi.task.*;
-import com.parkerjtech.backendserviceapi.activity.*;
 
 public final class DatabaseFixtures {
     private DatabaseFixtures() {}

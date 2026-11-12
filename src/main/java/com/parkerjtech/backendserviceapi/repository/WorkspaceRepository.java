@@ -1,4 +1,8 @@
-package com.parkerjtech.backendserviceapi.workspace;
+package com.parkerjtech.backendserviceapi.repository;
+
+import com.parkerjtech.backendserviceapi.model.DemoWorkspace;
+import com.parkerjtech.backendserviceapi.utils.JdbcValues;
+import com.parkerjtech.backendserviceapi.utils.SqlQueries;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -8,8 +12,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.dao.DataIntegrityViolationException;
-import com.parkerjtech.backendserviceapi.config.SqlQueries;
-import static com.parkerjtech.backendserviceapi.config.JdbcValues.*;
+import static com.parkerjtech.backendserviceapi.utils.JdbcValues.*;
 
 @Repository
 public class WorkspaceRepository {

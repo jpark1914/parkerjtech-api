@@ -1,4 +1,4 @@
-package com.parkerjtech.backendserviceapi.lead;
+package com.parkerjtech.backendserviceapi.model;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;

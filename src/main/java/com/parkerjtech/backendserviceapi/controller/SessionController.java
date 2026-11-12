@@ -1,4 +1,7 @@
-package com.parkerjtech.backendserviceapi.workspace;
+package com.parkerjtech.backendserviceapi.controller;
+
+import com.parkerjtech.backendserviceapi.model.SessionResponse;
+import com.parkerjtech.backendserviceapi.utils.WorkspaceSessionResolver;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.CacheControl;

@@ -1,5 +1,13 @@
 package com.parkerjtech.backendserviceapi.integration;
 
+import com.parkerjtech.backendserviceapi.model.ActivityEvent;
+import com.parkerjtech.backendserviceapi.model.CrmTask;
+import com.parkerjtech.backendserviceapi.model.Lead;
+import com.parkerjtech.backendserviceapi.repository.ActivityRepository;
+import com.parkerjtech.backendserviceapi.repository.LeadRepository;
+import com.parkerjtech.backendserviceapi.repository.TaskRepository;
+import com.parkerjtech.backendserviceapi.repository.WorkspaceRepository;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -9,10 +17,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
-import com.parkerjtech.backendserviceapi.workspace.*;
-import com.parkerjtech.backendserviceapi.lead.*;
-import com.parkerjtech.backendserviceapi.task.*;
-import com.parkerjtech.backendserviceapi.activity.*;
 import static com.parkerjtech.backendserviceapi.support.DatabaseFixtures.*;
 import static org.assertj.core.api.Assertions.*;
 

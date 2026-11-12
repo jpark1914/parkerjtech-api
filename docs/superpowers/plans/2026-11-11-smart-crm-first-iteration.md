@@ -40,13 +40,15 @@
 
 Production Java root `src/main/java/com/parkerjtech/backendserviceapi/`; test root `src/test/java/com/parkerjtech/backendserviceapi/`. Paths below are repository-relative. Keep the existing application name/package to avoid an unrelated rename.
 
-- `config/`: Clock, SQL catalog, JSON, datasource/profile and security configuration.
-- `workspace/`: workspace record/repository/service, session bootstrap, request workspace resolution, expiration cleanup.
-- `lead/`: lead record/enums, input/output DTOs, priority policy, repository, transactional service, controller.
-- `task/` and `activity/`: immutable records, repositories, read controllers.
-- `api/`: list envelope, safe exceptions and Problem Details handlers shared by MVC/security.
+- `repository/`: all handwritten JDBC repositories and row mapping.
+- `controller/`: HTTP endpoints and MVC exception handling.
+- `model/`: domain records, nested enums, request/response DTOs and list envelopes.
+- `service/`: transactions, priority policy, domain reads and cleanup scheduling.
+- `utils/`: SQL catalog, JDBC value conversion, session resolution and security error serialization.
+- `config/`: Spring wiring, Clock, JSON, datasource/profile and security configuration.
+- `exception/`: application exception types.
 - Resources: `application.yaml`, `application-local.yaml`, `sqlqueries.props`, `db/migration/V1__crm_schema.sql`, `db/migration/V2__jdbc_sessions.sql`.
-- Tests mirror feature packages; shared fixtures live in `support/`, full HTTP and restart checks in `integration/`.
+- Tests mirror the corresponding responsibility packages; shared fixtures live in `support/`, full HTTP and restart checks in `integration/`.
 
 Public JSON field names are camelCase. Decimal amounts serialize as JSON numbers; ISO timestamps include UTC offset/Z. All DTOs omit workspace association except bootstrap metadata. Use Java records where suitable; enum definitions may be nested in their domain record. Implement methods below as the stable internal interfaces; private helpers are builder discretion.
 
@@ -66,7 +68,7 @@ Public JSON field names are camelCase. Decimal amounts serialize as JSON numbers
 
 ## Task 2: Own the SQL catalog and database schema
 
-**Files:** Create `config/SqlQueries.java`, `config/SqlQueryConfiguration.java`, both Flyway migrations, `sqlqueries.props`; test `config/SqlQueriesTest.java`, `integration/SchemaMigrationTest.java`.
+**Files:** Create `utils/SqlQueries.java`, `config/SqlQueryConfiguration.java`, both Flyway migrations, `sqlqueries.props`; test `utils/SqlQueriesTest.java`, `integration/SchemaMigrationTest.java`.
 
 **Interfaces:** `SqlQueries(Resource resource, Set<String> requiredKeys)` loads explicit Java properties; `String require(String key)` returns nonblank SQL or throws a configuration exception. Configuration supplies the complete required key set listed in Task 3. Repositories use the catalog; DDL does not.
 
@@ -80,7 +82,7 @@ Public JSON field names are camelCase. Decimal amounts serialize as JSON numbers
 
 ## Task 3: Implement workspace-scoped JDBC repositories
 
-**Files:** Create `workspace/{DemoWorkspace,WorkspaceRepository}.java`, `lead/{Lead,LeadRepository}.java`, `task/{CrmTask,TaskRepository}.java`, `activity/{ActivityEvent,ActivityRepository}.java`; tests `integration/JdbcRepositoriesTest.java` and shared `support/DatabaseFixtures.java`.
+**Files:** Create `model/DemoWorkspace.java`, `repository/WorkspaceRepository.java`, `model/Lead.java`, `repository/LeadRepository.java`, `model/CrmTask.java`, `repository/TaskRepository.java`, `model/ActivityEvent.java`, `repository/ActivityRepository.java`; tests `integration/JdbcRepositoriesTest.java` and shared `support/DatabaseFixtures.java`.
 
 **Interfaces:**
 
@@ -99,7 +101,7 @@ Public JSON field names are camelCase. Decimal amounts serialize as JSON numbers
 
 ## Task 4: Bootstrap anonymous sessions and enforce workspace ownership
 
-**Files:** Create `workspace/{WorkspaceService,WorkspaceSessionResolver,SessionController,SessionResponse}.java`, `config/SecurityConfiguration.java`, `api/{ApiException,ApiProblemWriter,ApiExceptionHandler}.java`; test `integration/WorkspaceSessionApiTest.java`.
+**Files:** Create `service/WorkspaceService.java`, `utils/WorkspaceSessionResolver.java`, `controller/SessionController.java`, `model/SessionResponse.java`, `config/SecurityConfiguration.java`, `exception/ApiException.java`, `utils/ApiProblemWriter.java`, `controller/ApiExceptionHandler.java`; test `integration/WorkspaceSessionApiTest.java`.
 
 **Interfaces:** `WorkspaceService.bootstrap(UUID existingWorkspaceId)` returns a persisted active `DemoWorkspace` or creates one; `DemoWorkspace requireActive(UUID id)` throws bootstrap-required if missing/expired. `WorkspaceSessionResolver.bootstrap(HttpServletRequest)` binds a server-selected workspace under session attribute `demoWorkspaceId`; `UUID requireWorkspaceId(HttpServletRequest)` reads an existing session only, verifies expiry, and clears an expired association. `SessionResponse(UUID workspaceId, Instant createdAt, Instant expiresAt, String csrfToken, String csrfHeaderName)` is the bootstrap body.
 
@@ -113,7 +115,7 @@ Public JSON field names are camelCase. Decimal amounts serialize as JSON numbers
 
 ## Task 5: Create leads and automation in one transaction
 
-**Files:** Create `lead/{CreateLeadCommand,PriorityPolicy,LeadService}.java`; test `lead/PriorityPolicyTest.java`, `integration/LeadCreationServiceTest.java`, `integration/LeadCapacityConcurrencyTest.java`.
+**Files:** Create `model/CreateLeadCommand.java`, `service/PriorityPolicy.java`, `service/LeadService.java`; test `service/PriorityPolicyTest.java`, `integration/LeadCreationServiceTest.java`, `integration/LeadCapacityConcurrencyTest.java`.
 
 **Interfaces:** `CreateLeadCommand(String name, String company, Lead.ServiceInterest serviceInterest, Lead.Source source, BigDecimal estimatedValue, Lead.ContactPreference contactPreference)`; `Lead.Priority PriorityPolicy.assign(BigDecimal value)`; `Lead LeadService.create(UUID workspaceId, CreateLeadCommand command)`. Read methods added in Task 6. Service depends on Task 3 repositories and Clock; callers never supply stage/priority/timestamps.
 
@@ -127,7 +129,7 @@ Public JSON field names are camelCase. Decimal amounts serialize as JSON numbers
 
 ## Task 6: Expose validated lead, task and activity APIs
 
-**Files:** Create `lead/{CreateLeadRequest,LeadResponse,LeadController}.java`, `task/{TaskResponse,TaskService,TaskController}.java`, `activity/{ActivityResponse,ActivityService,ActivityController}.java`, `api/ItemsResponse.java`, `config/JsonConfiguration.java`; modify `LeadService`, API error handler; test `integration/CrmApiTest.java`, `lead/CreateLeadRequestTest.java`.
+**Files:** Create `model/CreateLeadRequest.java`, `model/LeadResponse.java`, `controller/LeadController.java`, `model/TaskResponse.java`, `service/TaskService.java`, `controller/TaskController.java`, `model/ActivityResponse.java`, `service/ActivityService.java`, `controller/ActivityController.java`, `model/ItemsResponse.java`, `config/JsonConfiguration.java`; modify `LeadService`, API error handler; test `integration/CrmApiTest.java`, `model/CreateLeadRequestTest.java`.
 
 **Interfaces:** `ItemsResponse<T>(List<T> items)`; `LeadService.list(UUID workspaceId): List<Lead>` and `get(UUID workspaceId, UUID leadId): Lead`; `TaskService.list(UUID workspaceId): List<CrmTask>`; `ActivityService.list(UUID workspaceId): List<ActivityEvent>`. Read services check active workspace in a transaction before returning results. DTOs expose spec fields minus `workspaceId`. CreateLeadRequest has exactly the six command fields and converts to a validated CreateLeadCommand after trimming name/company.
 
@@ -141,7 +143,7 @@ Public JSON field names are camelCase. Decimal amounts serialize as JSON numbers
 
 ## Task 7: Expire and clean workspaces safely
 
-**Files:** Create `workspace/{WorkspaceCleanupService,WorkspaceCleanupTransaction,WorkspaceCleanupScheduler}.java`; test `integration/WorkspaceCleanupTest.java` and `integration/WorkspaceCleanupConcurrencyTest.java`; modify application cleanup settings.
+**Files:** Create `service/WorkspaceCleanupService.java`, `service/WorkspaceCleanupTransaction.java`, `service/WorkspaceCleanupScheduler.java`; test `integration/WorkspaceCleanupTest.java` and `integration/WorkspaceCleanupConcurrencyTest.java`; modify application cleanup settings.
 
 **Interfaces:** `int WorkspaceCleanupService.cleanupExpired(Instant cutoff, int batchSize)` finds a bounded candidate list, calls the separate proxied `@Transactional boolean WorkspaceCleanupTransaction.deleteIfExpired(UUID id, Instant cutoff)`, and returns deleted workspace count. Scheduler calls with Clock.instant() every 15 minutes. Do not rely on self-invoked `@Transactional` methods.
 
@@ -176,4 +178,4 @@ Public JSON field names are camelCase. Decimal amounts serialize as JSON numbers
 - Ownership/limits/cleanup: Tasks 3–7; all five Review Focus conditions have assigned tests.
 - Deferred scope stays deferred. No status transitions, seeding, frontend, external notifications, or deployment are part of these tasks.
 
-Execution has not started. Confirm the execution approach after reviewing this plan.
+Execution: native, approved 2026-11-12. Owner requested responsibility-based packages during Task 4; all remaining file paths above reflect that change.

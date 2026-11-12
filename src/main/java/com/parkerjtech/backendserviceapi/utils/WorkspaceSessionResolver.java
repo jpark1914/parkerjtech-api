@@ -1,9 +1,12 @@
-package com.parkerjtech.backendserviceapi.workspace;
+package com.parkerjtech.backendserviceapi.utils;
+
+import com.parkerjtech.backendserviceapi.exception.ApiException;
+import com.parkerjtech.backendserviceapi.model.DemoWorkspace;
+import com.parkerjtech.backendserviceapi.service.WorkspaceService;
 
 import java.util.UUID;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Component;
-import com.parkerjtech.backendserviceapi.api.ApiException;
 
 @Component
 public class WorkspaceSessionResolver {

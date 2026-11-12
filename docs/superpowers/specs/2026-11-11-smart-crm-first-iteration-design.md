@@ -2,7 +2,7 @@
 
 Date: 2026-11-11
 Branch: `feature/smart-crm-first-itr`
-Status: Approved by the owner on 2026-11-11; implementation not started
+Status: Approved by the owner on 2026-11-11; implementation in progress
 
 ## Intent
 
@@ -56,7 +56,7 @@ Use a single Spring Boot application and one H2 datasource:
 
 `HTTP controller -> application service -> JDBC repository -> H2`
 
-Organize CRM code under the existing root package, with separate workspace, lead, task, activity, configuration, and error-handling responsibilities. Use explicit request/response DTOs rather than exposing persistence objects. Controllers handle HTTP concerns; services enforce ownership, business rules, and transactions; repositories bind parameters and map rows.
+Organize CRM code under the existing root package by responsibility: `repository`, `controller`, `model`, `service`, `utils`, `config`, and `exception`. This overrides the earlier feature-based layout at the owner's request on 2026-11-12. Use explicit request/response DTOs rather than exposing persistence objects. Controllers handle HTTP concerns; services enforce ownership, business rules, and transactions; repositories bind parameters and map rows.
 
 Application runtime SQL belongs in `sqlqueries.props`, using names such as `lead.insert`, `lead.findByWorkspaceAndId`, and `workspace.deleteExpired`. Load this classpath resource explicitly as Java properties; the `.props` extension must not rely on Boot's automatic configuration-file discovery. A small query catalog fails startup on a missing or blank required query. Prefer a dedicated catalog rather than injecting raw SQL into controllers or services.
 

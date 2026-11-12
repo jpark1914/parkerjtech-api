@@ -1,4 +1,4 @@
-package com.parkerjtech.backendserviceapi.task;
+package com.parkerjtech.backendserviceapi.model;
 import java.time.Instant;
 import java.util.UUID;
 public record CrmTask(UUID id, UUID workspaceId, UUID leadId, String description,

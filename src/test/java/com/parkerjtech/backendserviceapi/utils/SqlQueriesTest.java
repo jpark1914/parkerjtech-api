@@ -1,4 +1,4 @@
-package com.parkerjtech.backendserviceapi.config;
+package com.parkerjtech.backendserviceapi.utils;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Set;

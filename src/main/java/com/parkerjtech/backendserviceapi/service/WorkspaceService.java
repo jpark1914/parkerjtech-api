@@ -1,11 +1,14 @@
-package com.parkerjtech.backendserviceapi.workspace;
+package com.parkerjtech.backendserviceapi.service;
+
+import com.parkerjtech.backendserviceapi.exception.ApiException;
+import com.parkerjtech.backendserviceapi.model.DemoWorkspace;
+import com.parkerjtech.backendserviceapi.repository.WorkspaceRepository;
 
 import java.time.Clock;
 import java.time.Duration;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.parkerjtech.backendserviceapi.api.ApiException;
 
 @Service
 public class WorkspaceService {

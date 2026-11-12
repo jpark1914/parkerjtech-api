@@ -1,5 +1,7 @@
 package com.parkerjtech.backendserviceapi.config;
 
+import com.parkerjtech.backendserviceapi.utils.SqlQueries;
+
 import java.util.Set;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
