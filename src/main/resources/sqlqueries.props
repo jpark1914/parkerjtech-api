@@ -1,0 +1,17 @@
+# Application runtime SQL. Values are JDBC-bound, never string-substituted.
+workspace.insert=INSERT INTO demo_workspace (id,created_at,expires_at) VALUES (:id,:createdAt,:expiresAt)
+workspace.find=SELECT * FROM demo_workspace WHERE id=:id
+workspace.lock=SELECT * FROM demo_workspace WHERE id=:id FOR UPDATE
+workspace.expiredIds=SELECT id FROM demo_workspace WHERE expires_at<=:cutoff ORDER BY expires_at,id LIMIT :limit
+workspace.deleteExpired=DELETE FROM demo_workspace WHERE id=:id AND expires_at<=:cutoff
+lead.insert=INSERT INTO crm_lead (id,workspace_id,name,company,service_interest,source,estimated_value,contact_preference,stage,priority,created_at,updated_at,last_activity_at) SELECT :id,:workspaceId,:name,:company,:serviceInterest,:source,:estimatedValue,:contactPreference,:stage,:priority,:createdAt,:updatedAt,:lastActivityAt FROM demo_workspace WHERE id=:workspaceId
+lead.list=SELECT * FROM crm_lead WHERE workspace_id=:workspaceId ORDER BY created_at DESC,id
+lead.find=SELECT * FROM crm_lead WHERE workspace_id=:workspaceId AND id=:id
+lead.count=SELECT COUNT(*) FROM crm_lead WHERE workspace_id=:workspaceId
+lead.deleteByWorkspace=DELETE FROM crm_lead WHERE workspace_id=:workspaceId
+task.insertInitialIfAbsent=INSERT INTO crm_task (id,workspace_id,lead_id,description,due_at,status,automation_rule_key,created_at) SELECT :id,:workspaceId,:leadId,:description,:dueAt,:status,:automationRuleKey,:createdAt FROM crm_lead WHERE id=:leadId AND workspace_id=:workspaceId AND NOT EXISTS (SELECT 1 FROM crm_task WHERE workspace_id=:workspaceId AND lead_id=:leadId AND automation_rule_key=:automationRuleKey)
+task.list=SELECT * FROM crm_task WHERE workspace_id=:workspaceId ORDER BY due_at,id
+task.deleteByWorkspace=DELETE FROM crm_task WHERE workspace_id=:workspaceId
+activity.insert=INSERT INTO crm_activity_event (id,workspace_id,lead_id,type,description,created_at) SELECT :id,:workspaceId,:leadId,:type,:description,:createdAt FROM crm_lead WHERE id=:leadId AND workspace_id=:workspaceId
+activity.list=SELECT * FROM crm_activity_event WHERE workspace_id=:workspaceId ORDER BY created_at,lead_id,CASE type WHEN 'LEAD_CREATED' THEN 0 WHEN 'PRIORITY_ASSIGNED' THEN 1 ELSE 2 END,id
+activity.deleteByWorkspace=DELETE FROM crm_activity_event WHERE workspace_id=:workspaceId
