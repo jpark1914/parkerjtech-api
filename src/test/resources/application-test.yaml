@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:${random.uuid};DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000
+    username: sa
+    password:
+server:
+  servlet:
+    session:
+      cookie:
+        secure: false
+crm:
+  cleanup:
+    enabled: false
+logging:
+  level:
+    root: WARN
