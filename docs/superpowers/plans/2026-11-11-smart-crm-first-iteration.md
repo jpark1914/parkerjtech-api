@@ -180,4 +180,6 @@ Public JSON field names are camelCase. Decimal amounts serialize as JSON numbers
 
 Execution: native, approved 2026-11-12. Owner requested responsibility-based packages during Task 4; all remaining file paths above reflect that change.
 
-Verification recorded 2026-11-12: 73 tests passed, Maven verify/package succeeded, and the executable curl walkthrough passed against the packaged application with a temporary file-backed database. Final independent branch review follows.
+Verification recorded 2026-11-12: 73 tests passed, Maven verify/package succeeded, and the executable curl walkthrough passed against the packaged application with a temporary file-backed database. Independent review of commit `08814d8` found no Critical or Important issues. Two additional HTTP regressions (expired JDBC session, replacement cookie with prior CSRF token) are deferred as a minor coverage improvement.
+
+Execution decisions retained: use the owner-requested feature checkout (no extra worktree isolation); use offline Maven after caching (uncached dependencies need online resolution); defer hosting/abuse controls/PostgreSQL; require completed bootstrap before parallel client requests; preserve new-lead semantics for POST retries; allow follow-up deadlines beyond temporary workspace expiry. These last four are explicit approved scope/lifecycle choices reaffirmed in final review.
