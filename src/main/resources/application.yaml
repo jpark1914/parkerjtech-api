@@ -41,7 +41,6 @@ logging:
 crm:
   logging:
     zone: ${CRM_LOG_TIME_ZONE:America/Chicago}
-    exception-stack-traces: false
   cleanup:
     enabled: true
     delay-ms: 900000

@@ -15,6 +15,7 @@ public class ApiProblemWriter {
     public ProblemDetail problem(int status,String code,String detail) {
         var problem=ProblemDetail.forStatusAndDetail(org.springframework.http.HttpStatusCode.valueOf(status),detail);
         problem.setProperty("code",code);
+        problem.setProperty("message",detail);
         problem.setProperty("fieldErrors",Map.of());
         return problem;
     }

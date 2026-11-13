@@ -16,6 +16,7 @@ public class ActivityService {
     }
     @Transactional(readOnly=true)
     public List<ActivityEvent> list(UUID workspaceId) {
+        actions.info("Service method started: ActivityService.list workspaceId={}", workspaceId);
         workspaces.requireActive(workspaceId);
         var results = repository.list(workspaceId);
         actions.info("Retrieved {} activity events from demo workspace {}", results.size(), workspaceId);

@@ -14,6 +14,7 @@ public class WorkspaceCleanupService {
         this.workspaces=workspaces;this.deletion=deletion;this.actions=actions;
     }
     public int cleanupExpired(Instant cutoff,int batchSize) {
+        actions.info("Service method started: WorkspaceCleanupService.cleanupExpired batchSize={}", batchSize);
         if(batchSize<1) throw new IllegalArgumentException("Cleanup batch size must be positive");
         actions.info("Expired demo workspace cleanup started; cutoffUTC={}, batchSize={}", cutoff, batchSize);
         var candidates = workspaces.findExpiredIds(cutoff,batchSize);

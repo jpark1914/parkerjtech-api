@@ -7,7 +7,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -19,13 +18,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class RequestLoggingFilter extends OncePerRequestFilter {
     private static final Logger LOG = LoggerFactory.getLogger(RequestLoggingFilter.class);
+    public static final String STACK_TRACE_LOGGED_ATTRIBUTE = RequestLoggingFilter.class.getName() + ".stackTraceLogged";
     private final CrmActionLogger actions;
-    private final boolean stackTraces;
 
-    public RequestLoggingFilter(CrmActionLogger actions,
-            @Value("${crm.logging.exception-stack-traces:false}") boolean stackTraces) {
+    public RequestLoggingFilter(CrmActionLogger actions) {
         this.actions = actions;
-        this.stackTraces = stackTraces;
     }
 
     @Override
@@ -40,13 +37,15 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
         boolean failed = false;
         String method = CrmActionLogger.singleLine(request.getMethod());
         String path = CrmActionLogger.singleLine(request.getRequestURI());
+        LOG.info("Request started localTime={} method={} path={}", actions.localTime(), method, path);
         try {
             chain.doFilter(request, response);
         } catch (ServletException | IOException | RuntimeException ex) {
             failed = true;
             LOG.error("Request processing failed localTime={} method={} path={} exceptionType={}",
                     actions.localTime(), method, path, ex.getClass().getName());
-            if (stackTraces) LOG.error("Request processing exception", ex);
+            LOG.error("Request processing exception", ex);
+            request.setAttribute(STACK_TRACE_LOGGED_ATTRIBUTE, Boolean.TRUE);
             throw ex;
         } finally {
             int status = failed ? 500 : response.getStatus();
@@ -55,6 +54,11 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
                     : status >= 400 ? org.slf4j.event.Level.WARN : org.slf4j.event.Level.INFO;
             LOG.atLevel(level).log("Request completed localTime={} method={} path={} status={} durationMs={}",
                     actions.localTime(), method, path, status, durationMs);
+            if (status >= 300 && request.getAttribute(STACK_TRACE_LOGGED_ATTRIBUTE) == null) {
+                LOG.error("HTTP response stack trace localTime={} method={} path={} status={}",
+                        actions.localTime(), method, path, status,
+                        new Exception("Non-success HTTP response: " + status));
+            }
         }
     }
 }

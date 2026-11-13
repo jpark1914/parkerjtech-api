@@ -20,6 +20,7 @@ public class WorkspaceCleanupTransaction {
     }
     @Transactional
     public boolean deleteIfExpired(UUID id,Instant cutoff) {
+        actions.info("Service method started: WorkspaceCleanupTransaction.deleteIfExpired workspaceId={}", id);
         var workspace=workspaces.lock(id);
         if(workspace.isEmpty() || workspace.get().expiresAt().isAfter(cutoff)) {
             actions.info("Cleanup skipped for demo workspace {}: missing or not expired", id);

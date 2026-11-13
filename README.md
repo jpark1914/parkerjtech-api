@@ -89,7 +89,7 @@ Action logs cover each endpoint and the main service sub-actions:
 
 Lead, priority, task, activity-creation, and workspace-deletion success messages are logged after transaction commit, so a rollback does not print a false success. Request summaries also include method, path, status, and duration without cookies, CSRF tokens, query strings, or request bodies. Lead names are kept on one log line.
 
-Log times default to `America/Chicago`, including daylight-saving changes. Set `CRM_LOG_TIME_ZONE` to another Java timezone ID to change them. Database/API timestamps remain UTC. The `local` profile enables exception stack traces for debugging; the default profile prints exception types and safe context. API error responses continue to hide exception internals. Restart the backend after updating the code to see the new logs.
+Log times default to `America/Chicago`, including daylight-saving changes. Set `CRM_LOG_TIME_ZONE` to another Java timezone ID to change them. Database/API timestamps remain UTC. Responses with 3xx, 4xx, or 5xx status codes print a stack trace in the Run console; API error responses continue to hide exception internals. Restart the backend after updating the code to see the new logs.
 
 ## Structure
 

@@ -21,6 +21,7 @@ public class WorkspaceService {
     }
     @Transactional
     public DemoWorkspace bootstrap(UUID existingWorkspaceId) {
+        actions.info("Service method started: WorkspaceService.bootstrap existingWorkspaceId={}", existingWorkspaceId);
         var now=clock.instant();
         if(existingWorkspaceId!=null) {
             var existing=workspaces.find(existingWorkspaceId).filter(w -> now.isBefore(w.expiresAt()));
@@ -38,6 +39,7 @@ public class WorkspaceService {
     }
     @Transactional(readOnly=true)
     public DemoWorkspace requireActive(UUID id) {
+        actions.info("Service method started: WorkspaceService.requireActive workspaceId={}", id);
         if(id==null) throw ApiException.workspaceRequired();
         var workspace=workspaces.find(id).orElseThrow(ApiException::workspaceRequired);
         if(!clock.instant().isBefore(workspace.expiresAt())) {

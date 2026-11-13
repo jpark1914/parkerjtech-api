@@ -63,7 +63,7 @@ Repeated POSTs create additional leads. Initial-task deduplication is separate f
 
 ## Errors
 
-Problem Details JSON includes `status`, safe `detail`, stable `code`, and `fieldErrors` (empty when not applicable).
+Problem Details JSON includes `status`, safe `detail`, a client-ready `message` matching the detail, stable `code`, and `fieldErrors` (empty when not applicable). For example, an invalid enum returns a message explaining the invalid value and a field error listing accepted values. Internal exception messages and stack traces stay in server logs.
 
 | Status | Code | Meaning |
 | --- | --- | --- |
@@ -74,7 +74,7 @@ Problem Details JSON includes `status`, safe `detail`, stable `code`, and `field
 | 409 | `WORKSPACE_LIMIT_REACHED` | Workspace has 100 leads |
 | 500 | `INTERNAL_ERROR` | Unexpected failure, without SQL/stack details |
 
-Unknown routes and unsupported methods retain 404/405 with `INVALID_REQUEST`; other MVC client errors retain their standard status. CSRF runs before controller workspace checks: a POST without a session/token may return 403; a domain GET without a session returns 401. Field errors name invalid fields without echoing their values.
+Unknown routes and unsupported methods retain 404/405 with `INVALID_REQUEST`; other MVC client errors retain their standard status. CSRF runs before controller workspace checks: a POST without a session/token may return 403; a domain GET without a session returns 401. Invalid enum values return the field name and accepted enum names in `fieldErrors`, without echoing the submitted value. Exception stack traces remain in the server logs and are not returned to clients.
 
 ## Curl walkthrough
 

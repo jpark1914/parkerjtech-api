@@ -16,6 +16,7 @@ public class TaskService {
     }
     @Transactional(readOnly=true)
     public List<CrmTask> list(UUID workspaceId) {
+        actions.info("Service method started: TaskService.list workspaceId={}", workspaceId);
         workspaces.requireActive(workspaceId);
         var results = repository.list(workspaceId);
         actions.info("Retrieved {} tasks from demo workspace {}", results.size(), workspaceId);

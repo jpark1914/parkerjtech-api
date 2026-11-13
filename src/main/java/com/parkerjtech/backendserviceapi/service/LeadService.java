@@ -30,6 +30,7 @@ public class LeadService {
     }
     @Transactional(readOnly=true)
     public java.util.List<Lead> list(UUID workspaceId) {
+        actions.info("Service method started: LeadService.list workspaceId={}", workspaceId);
         workspaceService.requireActive(workspaceId);
         var results = leads.list(workspaceId);
         actions.info("Retrieved {} leads from demo workspace {}", results.size(), workspaceId);
@@ -38,6 +39,7 @@ public class LeadService {
     }
     @Transactional(readOnly=true)
     public Lead get(UUID workspaceId,UUID leadId) {
+        actions.info("Service method started: LeadService.get workspaceId={} leadId={}", workspaceId, leadId);
         workspaceService.requireActive(workspaceId);
         actions.info("Retrieving lead {} from demo workspace {}", leadId, workspaceId);
         var lead = leads.find(workspaceId,leadId).orElseThrow(() -> new ApiException(404,"LEAD_NOT_FOUND","Lead not found in this workspace."));
@@ -46,6 +48,7 @@ public class LeadService {
     }
     @Transactional
     public Lead create(UUID workspaceId,CreateLeadCommand command) {
+        actions.info("Service method started: LeadService.create workspaceId={}", workspaceId);
         actions.info("Creating lead {} in demo workspace {}", command.name(), workspaceId);
         var workspace=workspaces.lock(workspaceId).orElseThrow(ApiException::workspaceRequired);
         // Read time only after acquiring the row lock: a waiting request may have expired.
@@ -82,6 +85,7 @@ public class LeadService {
     }
 
     private void recordActivity(ActivityEvent event) {
+        actions.info("Service method started: LeadService.recordActivity eventId={} leadId={}", event.id(), event.leadId());
         activity.insert(event);
         actions.afterCommit(() -> actions.info("{} activity event {} has been recorded for lead {}",
                 event.type(), event.id(), event.leadId()));
