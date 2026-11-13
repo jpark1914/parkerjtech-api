@@ -2,7 +2,7 @@
 
 Date: 2026-11-13
 
-Status: Approach approved; written design awaiting Jordan's approval. Do not implement until this design is approved. After approval, create an implementation plan before editing application code.
+Status: Design approved by Jordan on 2026-11-13. Backend implementation is assigned to a separate agent; this chat prepares the handoff and plan only. Read the companion implementation plan before editing application code.
 
 ## Intent and sequence
 
@@ -75,9 +75,9 @@ Accept exactly one required field whose only supported target is `COMPLETED`; re
 
 Record one `FOLLOW_UP_COMPLETED` event associated with the task's lead. Preserve task identity, rule key, description, due date and creation time. `GET /tasks` continues to return both OPEN and COMPLETED tasks, preserving due-time/ID ordering; the frontend can derive next action from OPEN tasks and join their lead IDs to lead names.
 
-## Defaults proposed by the author
+## Approved design defaults
 
-These choices make the handoff concrete; Jordan has not separately selected each one and can change them during design approval:
+These defaults were proposed by the author and included in Jordan's approval of the written design:
 
 - Stage movement is allowed between any of the five values, including moving back from WON/LOST. There is no terminal-stage restriction in this demonstration.
 - WON/LOST does not complete or cancel an existing task. Completion does not move a lead's stage.
@@ -121,6 +121,6 @@ Prefer focused tests around these behaviors and existing test helpers; do not me
 
 ## Backend agent deliverables
 
-After this design is approved, read the writing-plans skill and prepare a concrete backend implementation plan, then implement when authorized. Update `docs/api/smart-crm-first-iteration.md` and README to replace the now-outdated deferrals for these operations. Include request/response examples, new activity types, no-op semantics, stage behavior, nullable completion time and the browser session/CSRF sequence.
+Read the companion plan at `docs/superpowers/plans/2026-11-13-smart-crm-mutations.md` and implement when authorized in the receiving chat; do not recreate an existing plan unless the requirements have changed. Update `docs/api/smart-crm-first-iteration.md` and README to replace the now-outdated deferrals for these operations. Include request/response examples, new activity types, no-op semantics, stage behavior, nullable completion time and the browser session/CSRF sequence.
 
 Finish with files changed, verified commands/results, migration considerations and a concise contract handoff for the frontend agent. Note that the frontend must refresh leads, tasks and activity after successful mutations; it must not silently replay a mutation into a newly bootstrapped workspace or automatically retry an ambiguous failed create request. Do not change cookies, CORS or hosting as part of this backend handoff.
