@@ -1,6 +1,6 @@
 # Reusable Spring Boot backend standard: design
 
-Date: 2026-11-13. Status: written design awaiting approval. The two-file skill approach was selected by Jordan; do not create the final skill until this design is approved.
+Date: 2026-11-13. Status: approved by Jordan on 2026-11-13; the two-file skill and Desktop/Dev discovery instruction were created and validated the same day.
 
 ## Purpose
 
@@ -46,3 +46,9 @@ Distinguish the core baseline from optional features: database engine, persisten
 Use the skill-authoring guidance to validate naming/frontmatter/references and exercise a realistic new-backend request against the finished reference. Check that it retains Jordan's JDBC/package/logging conventions without copying CRM-specific rules. Do not scaffold or install dependencies for a new backend merely to create this documentation.
 
 This deliverable includes the skill files and the Desktop/Dev discovery instruction only. No application code changes, library Git initialization, global configuration edits, publishing or external actions are included.
+
+## Delivered validation
+
+The final skill is at `/Users/jordan_home_drive/Desktop/Dev/AISkillFolder/spring-boot-backend-standard/SKILL.md`, its template at `references/backend-template.md`, and the discovery instruction at `/Users/jordan_home_drive/Desktop/Dev/AGENTS.md`. The source library is not a Git repository and was not initialized or globally installed.
+
+A baseline new-appointment-backend exercise without the skill chose feature packages, JdbcClient and a SQL directory. A fresh agent using the finished skill chose the responsibility packages, NamedParameterJdbcTemplate, sqlqueries.props, local-time/after-commit logging and left session/expiry/limits app-specific. The bundled skill validator passed; the reference link, example POM XML and four YAML examples parsed successfully. The validator's PyYAML dependency was installed only in an isolated `/tmp` virtual environment. No sample backend was scaffolded or application build claimed for this documentation deliverable.
