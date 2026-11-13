@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.parkerjtech.backendserviceapi.model.*;
 import com.parkerjtech.backendserviceapi.repository.*;
 import com.parkerjtech.backendserviceapi.exception.ApiException;
+import com.parkerjtech.backendserviceapi.utils.CrmActionLogger;
 
 @Service
 public class LeadService {
@@ -21,10 +22,11 @@ public class LeadService {
     private final Clock clock;
     private final Validator validator;
     private final WorkspaceService workspaceService;
+    private final CrmActionLogger actions;
     public LeadService(WorkspaceRepository workspaces,LeadRepository leads,TaskRepository tasks,
-            ActivityRepository activity,PriorityPolicy priorities,Clock clock,Validator validator,WorkspaceService workspaceService) {
+            ActivityRepository activity,PriorityPolicy priorities,Clock clock,Validator validator,WorkspaceService workspaceService,CrmActionLogger actions) {
         this.workspaces=workspaces; this.leads=leads; this.tasks=tasks; this.activity=activity;
-        this.priorities=priorities; this.clock=clock; this.validator=validator; this.workspaceService=workspaceService;
+        this.priorities=priorities; this.clock=clock; this.validator=validator; this.workspaceService=workspaceService; this.actions=actions;
     }
     @Transactional(readOnly=true)
     public java.util.List<Lead> list(UUID workspaceId) {
@@ -61,6 +63,7 @@ public class LeadService {
             "Assigned "+lead.priority()+" priority because "+reason+".",now));
         activity.insert(new ActivityEvent(UUID.randomUUID(),workspaceId,lead.id(),ActivityEvent.Type.FOLLOW_UP_CREATED,
             "Created an internal follow-up task due in 24 hours. No message was sent.",now));
+        actions.leadCreatedAfterCommit(lead);
         return lead;
     }
 }

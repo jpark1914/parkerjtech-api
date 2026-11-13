@@ -3,3 +3,6 @@ server:
     session:
       cookie:
         secure: false
+crm:
+  logging:
+    exception-stack-traces: true

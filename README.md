@@ -42,6 +42,20 @@ Tests use disposable H2 databases, including a temporary file-backed database fo
 
 The dependency-managed Flyway version currently warns that H2 2.4.240 is newer than its latest verified version. H2 integration checks exercise the actual managed versions; PostgreSQL migration compatibility has not been tested.
 
+## Console logging
+
+The application uses Spring Boot's default SLF4J/Logback logger. Successful CRM requests print at INFO, rejected requests at WARN, and unexpected failures at ERROR. Logs appear in the console running the backend; when launched in an IDE, use its Run console.
+
+A committed lead produces a line such as:
+
+```text
+INFO ... Lead created localTime=2026-11-13T12:00:00-06:00 lead=Alex Morgan?550e8400-e29b-41d4-a716-446655440000
+```
+
+Lead success is logged after transaction commit, so a rollback does not print a false success. Request summaries include method, path, status, and duration without cookies, CSRF tokens, query strings, or request bodies. Lead names are kept on one log line.
+
+Log times default to `America/Chicago`, including daylight-saving changes. Set `CRM_LOG_TIME_ZONE` to another Java timezone ID to change them. Database/API timestamps remain UTC. The `local` profile enables exception stack traces for debugging; the default profile prints exception types and safe context. API error responses continue to hide exception internals. Restart the backend after updating the code to see the new logs.
+
 ## Structure
 
 Java packages under `com.parkerjtech.backendserviceapi`:

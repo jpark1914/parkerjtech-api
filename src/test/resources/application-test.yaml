@@ -14,3 +14,4 @@ crm:
 logging:
   level:
     root: WARN
+    com.parkerjtech.backendserviceapi: WARN

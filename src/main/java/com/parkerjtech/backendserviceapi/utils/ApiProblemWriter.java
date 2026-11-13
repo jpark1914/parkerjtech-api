@@ -9,6 +9,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 @Component
 public class ApiProblemWriter {
+    private static final org.slf4j.Logger LOG=org.slf4j.LoggerFactory.getLogger(ApiProblemWriter.class);
     private final JsonMapper mapper;
     public ApiProblemWriter(JsonMapper mapper) { this.mapper=mapper; }
     public ProblemDetail problem(int status,String code,String detail) {
@@ -18,6 +19,7 @@ public class ApiProblemWriter {
         return problem;
     }
     public void write(HttpServletResponse response,int status,String code,String detail) throws IOException {
+        LOG.warn("Security request rejected status={} code={}",status,code);
         response.setStatus(status);
         response.setContentType("application/problem+json");
         response.setHeader("Cache-Control","no-store");
