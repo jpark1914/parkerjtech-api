@@ -49,10 +49,21 @@ The application uses Spring Boot's default SLF4J/Logback logger. Successful CRM 
 A committed lead produces a line such as:
 
 ```text
-INFO ... Lead created localTime=2026-11-13T12:00:00-06:00 lead=Alex Morgan?550e8400-e29b-41d4-a716-446655440000
+INFO ... localTime=2026-11-13T12:00:00-06:00 Alex Morgan + 550e8400-e29b-41d4-a716-446655440000 has been created as a lead
 ```
 
-Lead success is logged after transaction commit, so a rollback does not print a false success. Request summaries include method, path, status, and duration without cookies, CSRF tokens, query strings, or request bodies. Lead names are kept on one log line.
+Action logs cover each endpoint and the main service sub-actions:
+
+| Action | Logged details |
+| --- | --- |
+| Initialize/recover demo session | Created or recovered workspace ID and expiration for new workspaces |
+| Create a lead | Input/capacity checks, name + ID, assigned priority, follow-up task ID/status/deadline, each activity event type/ID |
+| Retrieve one lead or list leads | Name + ID for each lead and list count, including empty lists |
+| Retrieve tasks | Count, task IDs, related lead IDs, status and deadline |
+| Retrieve activity | Count, event IDs/types and related lead IDs |
+| Clean expired workspaces | Candidate count, skipped workspaces, removed lead/task/activity counts and workspace IDs |
+
+Lead, priority, task, activity-creation, and workspace-deletion success messages are logged after transaction commit, so a rollback does not print a false success. Request summaries also include method, path, status, and duration without cookies, CSRF tokens, query strings, or request bodies. Lead names are kept on one log line.
 
 Log times default to `America/Chicago`, including daylight-saving changes. Set `CRM_LOG_TIME_ZONE` to another Java timezone ID to change them. Database/API timestamps remain UTC. The `local` profile enables exception stack traces for debugging; the default profile prints exception types and safe context. API error responses continue to hide exception internals. Restart the backend after updating the code to see the new logs.
 

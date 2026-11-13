@@ -33,15 +33,36 @@ public class CrmActionLogger {
         return text.substring(0, Math.min(text.length(), 200));
     }
 
-    public void leadCreatedAfterCommit(Lead lead) {
+    public void info(String message, Object... values) {
+        LOG.info("localTime={} " + message, timestamped(values));
+    }
+
+    public void warn(String message, Object... values) {
+        LOG.warn("localTime={} " + message, timestamped(values));
+    }
+
+    private Object[] timestamped(Object[] values) {
+        Object[] parameters = new Object[values.length + 1];
+        parameters[0] = localTime();
+        for (int i = 0; i < values.length; i++) {
+            parameters[i + 1] = values[i] instanceof String text ? singleLine(text) : values[i];
+        }
+        return parameters;
+    }
+
+    public void afterCommit(Runnable action) {
         if (!TransactionSynchronizationManager.isActualTransactionActive()) {
-            throw new IllegalStateException("Lead creation logging requires a transaction");
+            throw new IllegalStateException("Committed action logging requires a transaction");
         }
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                LOG.info("Lead created localTime={} lead={}?{}", localTime(), singleLine(lead.name()), lead.id());
+                action.run();
             }
         });
+    }
+
+    public void leadCreatedAfterCommit(Lead lead) {
+        afterCommit(() -> info("{} + {} has been created as a lead", lead.name(), lead.id()));
     }
 }
