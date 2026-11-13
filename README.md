@@ -12,7 +12,31 @@ Requires JDK 21. The included Maven wrapper provides Maven; a global installatio
 
 The API listens on `http://localhost:8080`. The `local` profile permits HTTP session cookies. The default configuration uses Secure cookies for HTTPS and binds to `127.0.0.1`.
 
-H2 persists domain data and JDBC sessions in `./data/smart-crm`. Restarting preserves an unexpired workspace when the client retains its cookie. Configure `CRM_DATABASE_URL`, `CRM_DATABASE_USERNAME`, and `CRM_DATABASE_PASSWORD` as needed. Database files and credentials are ignored by Git. Flyway owns schema changes; the H2 web console is not included.
+H2 persists domain data and JDBC sessions in `./data/smart-crm`. Restarting preserves an unexpired workspace when the client retains its cookie. Configure `CRM_DATABASE_URL`, `CRM_DATABASE_USERNAME`, and `CRM_DATABASE_PASSWORD` as needed. Database files and credentials are ignored by Git. Flyway owns schema changes; the H2 browser console is enabled only in the `local` profile.
+
+## Browse the H2 database
+
+Start the backend with the `local` profile, then open [http://localhost:8080/h2-console/](http://localhost:8080/h2-console/). Use these default connection settings:
+
+```text
+Driver Class: org.h2.Driver
+JDBC URL:     jdbc:h2:file:./data/smart-crm;IFEXISTS=TRUE
+User Name:    sa
+Password:     leave blank
+```
+
+If datasource environment variables are configured, use the corresponding URL/credentials instead. The console shares the running application's H2 database; the backend can stay running while you inspect it. `IFEXISTS=TRUE` prevents accidentally creating a different database from a mistyped file path.
+
+For example:
+
+```sql
+SELECT * FROM crm_lead;
+SELECT * FROM crm_task;
+SELECT * FROM crm_activity_event;
+SELECT * FROM demo_workspace;
+```
+
+This is an administration view of all demo workspaces. The console is disabled by default and uses its own local-profile security chain: same-origin frames and a console-only CSRF exemption. API routes retain their normal session/CSRF requirements. The server remains bound to loopback and H2 remote console access stays disabled. Restart the application after adding this configuration.
 
 ## Try the API
 
