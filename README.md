@@ -44,7 +44,7 @@ The dependency-managed Flyway version currently warns that H2 2.4.240 is newer t
 
 ## Console logging
 
-The application uses Spring Boot's default SLF4J/Logback logger. Successful CRM requests print at INFO, rejected requests at WARN, and unexpected failures at ERROR. Logs appear in the console running the backend; when launched in an IDE, use its Run console.
+The application uses Spring Boot's default SLF4J/Logback logger. Standard ANSI console colors are enabled: INFO green, WARN yellow, and ERROR red. Set `SPRING_OUTPUT_ANSI_ENABLED=never` to disable colors when needed. Successful CRM requests print at INFO, rejected requests at WARN, and unexpected failures at ERROR. Logs appear in the console running the backend; when launched in an IDE, use its Run console.
 
 A committed lead produces a line such as:
 

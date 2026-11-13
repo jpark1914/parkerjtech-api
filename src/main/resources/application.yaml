@@ -1,4 +1,7 @@
 spring:
+  output:
+    ansi:
+      enabled: always
   autoconfigure:
     exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
   application:
