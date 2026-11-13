@@ -1,82 +1,120 @@
 # Parker J Tech API
 
-Backend for Parker J Tech's Smart CRM interactive demo, the first project in the planned Automation Lab at [parkerjtech.com](https://parkerjtech.com).
+Spring Boot backend for Parker J Tech's Smart CRM demo. This first iteration supports anonymous visitor workspaces, fictional lead intake, deterministic priority, follow-up tasks, and activity history. It will connect to the `jordan-portfolio` React application in a later iteration.
 
-The demo will show how small businesses can organize incoming leads, automate follow-up tasks, and track a sales pipeline. Visitors will interact with fictional data in isolated, temporary workspaces.
+## Run locally
 
-## Project status
+Requires JDK 21. The included Maven wrapper provides Maven; a global installation is unnecessary.
 
-Repository setup only. The application has not been scaffolded, and there are no build or run commands yet. The architecture and features below describe the intended implementation.
-
-## Planned stack
-
-- Java 21 and Spring Boot
-- REST APIs with Spring Data JPA
-- File-backed H2 for initial persistence
-- Flyway for schema migrations
-- JUnit and Mockito for backend testing
-- A React frontend integrated with the Parker J Tech portfolio
-
-PostgreSQL hosted by Supabase is a future migration target. Deployment on the existing EC2 instance is subject to verifying available resources and infrastructure.
-
-## Planned MVP
-
-- Create, edit, search, and list fictional leads.
-- Track New, Contacted, Qualified, Won, and Lost pipeline stages.
-- Assign priorities using transparent, deterministic rules.
-- Generate follow-up, proposal, and onboarding tasks without duplicates.
-- Record manual actions and automation results in an activity timeline.
-- Simulate 48 hours passing to demonstrate inactivity rules.
-- Reset a visitor's workspace and expire it after 24 hours.
-- Show basic workspace metrics if included in the final MVP scope.
-
-The initial demo will use rules rather than an LLM. Any simulated notifications will be clearly identified; real outbound email is outside the initial scope.
-
-## First implementation milestone
-
-Build a small vertical slice:
-
-1. Create a fictional lead through the API.
-2. Persist the lead in H2 within the visitor's workspace.
-3. Assign its priority and generate a follow-up task.
-4. Record the automation in an activity event.
-5. Display the resulting state in React.
-
-## Planned domain model
-
-| Entity | Purpose |
-| --- | --- |
-| DemoWorkspace | Visitor session, expiration, and simulated time |
-| Lead | Contact details, pipeline stage, priority, and estimated value |
-| Task | Manual or automatically generated work associated with a lead |
-| ActivityEvent | Chronological record of actions and rule outcomes |
-
-All reads and writes will be scoped to a workspace, with ownership enforced by the server.
-
-## Proposed API
-
-These routes are illustrative and are not implemented yet.
-
-```http
-GET   /api/demo/leads
-POST  /api/demo/leads
-PATCH /api/demo/leads/{id}
-GET   /api/demo/tasks
-GET   /api/demo/activity
-GET   /api/demo/metrics
-POST  /api/demo/simulate
-POST  /api/demo/reset
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
-## Deployment direction
+The API listens on `http://localhost:8080`. The `local` profile permits HTTP session cookies. The default configuration uses Secure cookies for HTTPS and binds to `127.0.0.1`.
 
-Serve the React frontend and proxy same-origin `/api` requests to Spring Boot through the existing web server. Keep the backend bound to localhost and persist H2 data outside build artifacts. Verify EC2 capacity, HTTPS, session handling, request limits, and cleanup behavior before public deployment.
+H2 persists domain data and JDBC sessions in `./data/smart-crm`. Restarting preserves an unexpired workspace when the client retains its cookie. Configure `CRM_DATABASE_URL`, `CRM_DATABASE_USERNAME`, and `CRM_DATABASE_PASSWORD` as needed. Database files and credentials are ignored by Git. Flyway owns schema changes; the H2 browser console is enabled only in the `local` profile.
 
-## Decisions to confirm before implementation
+## Browse the H2 database
 
-- Existing React repository, framework, styling, and deployment workflow
-- EC2 capacity and reverse-proxy configuration
-- Per-visitor 24-hour expiration versus a fixed global reset
-- Final MVP analytics scope, public routes, and consultation destination
+Start the backend with the `local` profile, then open [http://localhost:8080/h2-console/](http://localhost:8080/h2-console/). Use these default connection settings:
 
-Never commit credentials, local database files, or real customer data.
+```text
+Driver Class: org.h2.Driver
+JDBC URL:     jdbc:h2:file:./data/smart-crm;IFEXISTS=TRUE
+User Name:    sa
+Password:     leave blank
+```
+
+If datasource environment variables are configured, use the corresponding URL/credentials instead. The console shares the running application's H2 database; the backend can stay running while you inspect it. `IFEXISTS=TRUE` prevents accidentally creating a different database from a mistyped file path.
+
+For example:
+
+```sql
+SELECT * FROM crm_lead;
+SELECT * FROM crm_task;
+SELECT * FROM crm_activity_event;
+SELECT * FROM demo_workspace;
+```
+
+This is an administration view of all demo workspaces. The console is disabled by default and uses its own local-profile security chain: same-origin frames and a console-only CSRF exemption. API routes retain their normal session/CSRF requirements. The server remains bound to loopback and H2 remote console access stays disabled. Restart the application after adding this configuration.
+
+## Try the API
+
+With the server running, use the curl demonstration (requires curl and Python 3):
+
+```bash
+bash scripts/smoke-api.sh
+```
+
+For another local port:
+
+```bash
+CRM_BASE_URL=http://localhost:8081 bash scripts/smoke-api.sh
+```
+
+The script bootstraps two visitors, creates a fictional lead, checks its follow-up and activity, and verifies the second visitor cannot retrieve it. It uses temporary cookie jars and deletes those files when finished. The fictional lead remains until workspace expiry.
+
+See the [API guide](docs/api/smart-crm-first-iteration.md) for request/response examples, cookie and CSRF handling, validation rules, and error codes.
+
+## Verify
+
+```bash
+./mvnw verify
+```
+
+Tests use disposable H2 databases, including a temporary file-backed database for restart verification. They cover priority boundaries, rollback, workspace isolation, CSRF, validation, capacity races, expiration, and transactional cleanup. After dependencies have been downloaded, `./mvnw -o verify` runs against the local Maven cache.
+
+The dependency-managed Flyway version currently warns that H2 2.4.240 is newer than its latest verified version. H2 integration checks exercise the actual managed versions; PostgreSQL migration compatibility has not been tested.
+
+## Console logging
+
+The application uses Spring Boot's default SLF4J/Logback logger. Standard ANSI console colors are enabled: INFO green, WARN yellow, and ERROR red. Set `SPRING_OUTPUT_ANSI_ENABLED=never` to disable colors when needed. Successful CRM requests print at INFO, rejected requests at WARN, and unexpected failures at ERROR. Logs appear in the console running the backend; when launched in an IDE, use its Run console.
+
+A committed lead produces a line such as:
+
+```text
+INFO ... localTime=2026-11-13T12:00:00-06:00 Alex Morgan + 550e8400-e29b-41d4-a716-446655440000 has been created as a lead
+```
+
+Action logs cover each endpoint and the main service sub-actions:
+
+| Action | Logged details |
+| --- | --- |
+| Initialize/recover demo session | Created or recovered workspace ID and expiration for new workspaces |
+| Create a lead | Input/capacity checks, name + ID, assigned priority, follow-up task ID/status/deadline, each activity event type/ID |
+| Retrieve one lead or list leads | Name + ID for each lead and list count, including empty lists |
+| Retrieve tasks | Count, task IDs, related lead IDs, status and deadline |
+| Retrieve activity | Count, event IDs/types and related lead IDs |
+| Clean expired workspaces | Candidate count, skipped workspaces, removed lead/task/activity counts and workspace IDs |
+
+Lead, priority, task, activity-creation, and workspace-deletion success messages are logged after transaction commit, so a rollback does not print a false success. Request summaries also include method, path, status, and duration without cookies, CSRF tokens, query strings, or request bodies. Lead names are kept on one log line.
+
+Log times default to `America/Chicago`, including daylight-saving changes. Set `CRM_LOG_TIME_ZONE` to another Java timezone ID to change them. Database/API timestamps remain UTC. Responses with 3xx, 4xx, or 5xx status codes print a stack trace in the Run console; API error responses continue to hide exception internals. Restart the backend after updating the code to see the new logs.
+
+## Structure
+
+Java packages under `com.parkerjtech.backendserviceapi`:
+
+| Package | Responsibility |
+| --- | --- |
+| `controller` | HTTP endpoints and MVC error handling |
+| `model` | Domain records, enums, request/response DTOs |
+| `repository` | Handwritten, workspace-scoped JDBC queries and row mapping |
+| `service` | Business rules, transactions, reads, expiration and cleanup |
+| `utils` | SQL catalog, JDBC conversions, session resolution, security error serialization |
+| `config` | Spring, clock, security and JSON wiring |
+| `exception` | Application errors |
+
+Application runtime SQL lives in `src/main/resources/sqlqueries.props`, loaded explicitly as Java properties. Queries use named JDBC parameters; values are never interpolated into SQL. Missing required queries fail startup. Flyway DDL lives in `src/main/resources/db/migration`; Spring Session manages its own runtime SQL.
+
+## Demo behavior and next steps
+
+- Each anonymous cookie session starts with an empty workspace and an absolute 24-hour lifetime. Tabs sharing the cookie share the workspace.
+- Creating a lead assigns priority, creates one internal follow-up task, and records three activity events in one transaction. No email or external message is sent.
+- Workspaces allow up to 100 leads. Expired access is denied immediately; scheduled cleanup deletes expired domain records in bounded batches every 15 minutes.
+- A follow-up is due 24 hours after creation, so its deadline can outlast the temporary workspace. This iteration demonstrates task generation only.
+- Repeating a POST creates another lead. Task-rule deduplication is separate from HTTP request idempotency.
+
+React integration, status transitions, sample data, search/editing, simulated time, reset, analytics, outbound notifications, and deployment are deferred. Before public launch, verify hosting capacity, HTTPS/proxy configuration, request limits and global abuse controls. The API currently targets local demonstrations.
+
+[Approved design](docs/superpowers/specs/2026-11-11-smart-crm-first-iteration-design.md) · [Implementation plan](docs/superpowers/plans/2026-11-11-smart-crm-first-iteration.md)

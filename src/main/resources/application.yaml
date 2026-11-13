@@ -1,3 +1,46 @@
 spring:
+  output:
+    ansi:
+      enabled: always
+  autoconfigure:
+    exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
   application:
     name: backendserviceapi
+  h2:
+    console:
+      enabled: false
+  datasource:
+    url: ${CRM_DATABASE_URL:jdbc:h2:file:./data/smart-crm}
+    username: ${CRM_DATABASE_USERNAME:sa}
+    password: ${CRM_DATABASE_PASSWORD:}
+  session:
+    timeout: 24h
+    jdbc:
+      initialize-schema: never
+  sql:
+    init:
+      mode: never
+server:
+  address: 127.0.0.1
+  servlet:
+    session:
+      timeout: 24h
+      cookie:
+        http-only: true
+        secure: true
+        same-site: lax
+        max-age: 24h
+  error:
+    include-message: never
+    include-stacktrace: never
+logging:
+  level:
+    com.parkerjtech.backendserviceapi: INFO
+  pattern:
+    dateformat: "yyyy-MM-dd'T'HH:mm:ss.SSSXXX,${CRM_LOG_TIME_ZONE:America/Chicago}"
+crm:
+  logging:
+    zone: ${CRM_LOG_TIME_ZONE:America/Chicago}
+  cleanup:
+    enabled: true
+    delay-ms: 900000
