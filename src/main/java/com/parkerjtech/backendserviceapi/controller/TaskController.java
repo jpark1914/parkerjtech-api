@@ -1,9 +1,11 @@
 package com.parkerjtech.backendserviceapi.controller;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
-import com.parkerjtech.backendserviceapi.model.TaskResponse;
-import com.parkerjtech.backendserviceapi.model.ItemsResponse;
+import jakarta.validation.Valid;
+import java.util.UUID;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import com.parkerjtech.backendserviceapi.model.*;
 import com.parkerjtech.backendserviceapi.service.TaskService;
 import com.parkerjtech.backendserviceapi.utils.WorkspaceSessionResolver;
 @RestController
@@ -14,5 +16,10 @@ public class TaskController {
     @GetMapping("/api/demo/tasks")
     public ItemsResponse<TaskResponse> list(HttpServletRequest request) {
         return new ItemsResponse<>(service.list(sessions.requireWorkspaceId(request)).stream().map(TaskResponse::from).toList());
+    }
+    @PatchMapping("/api/demo/tasks/{id}/status")
+    public ResponseEntity<TaskResponse> complete(@PathVariable UUID id,@Valid @RequestBody CompleteTaskRequest body,HttpServletRequest request) {
+        var task=service.complete(sessions.requireWorkspaceId(request),id);
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(TaskResponse.from(task));
     }
 }

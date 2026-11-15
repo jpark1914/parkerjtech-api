@@ -2,6 +2,8 @@ package com.parkerjtech.backendserviceapi.service;
 
 import java.time.Clock;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Objects;
 import java.util.UUID;
 import jakarta.validation.Validator;
 import jakarta.validation.ConstraintViolationException;
@@ -67,7 +69,7 @@ public class LeadService {
         actions.leadCreatedAfterCommit(lead);
         actions.afterCommit(() -> actions.info("{} priority has been assigned to lead {} + {}", lead.priority(), lead.name(), lead.id()));
         var task=new CrmTask(UUID.randomUUID(),workspaceId,lead.id(),"Follow up with fictional lead; internal demo task only, no message sent.",
-            now.plus(Duration.ofHours(24)),CrmTask.Status.OPEN,"INITIAL_FOLLOW_UP",now);
+            now.plus(Duration.ofHours(24)),CrmTask.Status.OPEN,"INITIAL_FOLLOW_UP",now,null);
         if(!tasks.insertInitialIfAbsent(task)) throw new IllegalStateException("New lead already has an initial follow-up");
         actions.afterCommit(() -> actions.info("Initial follow-up task {} has been created for lead {}; status={}, dueAtUTC={}",
                 task.id(), lead.id(), task.status(), task.dueAt()));
@@ -82,6 +84,69 @@ public class LeadService {
         recordActivity(new ActivityEvent(UUID.randomUUID(),workspaceId,lead.id(),ActivityEvent.Type.FOLLOW_UP_CREATED,
             "Created an internal follow-up task due in 24 hours. No message was sent.",now));
         return lead;
+    }
+
+    @Transactional
+    public Lead update(UUID workspaceId, UUID leadId, CreateLeadCommand command) {
+        actions.info("Service method started: LeadService.update workspaceId={} leadId={}", workspaceId, leadId);
+        var workspace=workspaces.lock(workspaceId).orElseThrow(ApiException::workspaceRequired);
+        var now=clock.instant();
+        if(!now.isBefore(workspace.expiresAt())) throw ApiException.workspaceRequired();
+        var existing=leads.find(workspaceId,leadId)
+                .orElseThrow(() -> new ApiException(404,"LEAD_NOT_FOUND","Lead not found in this workspace."));
+        var violations=validator.validate(command);
+        if(!violations.isEmpty()) throw new ConstraintViolationException(violations);
+
+        var changedFields=new ArrayList<String>();
+        if(!Objects.equals(existing.name(),command.name())) changedFields.add("name");
+        if(!Objects.equals(existing.company(),command.company())) changedFields.add("company");
+        if(existing.serviceInterest()!=command.serviceInterest()) changedFields.add("serviceInterest");
+        if(existing.source()!=command.source()) changedFields.add("source");
+        if(existing.estimatedValue().compareTo(command.estimatedValue())!=0) changedFields.add("estimatedValue");
+        if(existing.contactPreference()!=command.contactPreference()) changedFields.add("contactPreference");
+        var priority=priorities.assign(command.estimatedValue());
+        boolean priorityChanged=existing.priority()!=priority;
+        if(changedFields.isEmpty() && !priorityChanged) return existing;
+
+        var updated=new Lead(existing.id(),existing.workspaceId(),command.name(),command.company(),command.serviceInterest(),
+                command.source(),command.estimatedValue().setScale(2),command.contactPreference(),existing.stage(),priority,
+                existing.createdAt(),now,now);
+        if(leads.updateBusinessFields(updated)!=1) throw new IllegalStateException("Lead changed during locked update");
+        if(!changedFields.isEmpty()) {
+            recordActivity(new ActivityEvent(UUID.randomUUID(),workspaceId,leadId,ActivityEvent.Type.LEAD_UPDATED,
+                    "Updated lead fields: "+String.join(", ",changedFields)+".",now));
+        }
+        if(priorityChanged) {
+            String reason=switch(priority) {
+                case HIGH -> "estimated value is at least USD 5,000";
+                case MEDIUM -> "estimated value is at least USD 1,000 and below USD 5,000";
+                case LOW -> "estimated value is below USD 1,000";
+            };
+            recordActivity(new ActivityEvent(UUID.randomUUID(),workspaceId,leadId,ActivityEvent.Type.PRIORITY_ASSIGNED,
+                    "Assigned "+priority+" priority because "+reason+".",now));
+        }
+        actions.afterCommit(() -> actions.info("{} + {} has been updated as a lead",updated.name(),updated.id()));
+        if(priorityChanged) actions.afterCommit(() -> actions.info("{} priority has been assigned to lead {} + {}",priority,updated.name(),updated.id()));
+        return updated;
+    }
+
+    @Transactional
+    public Lead changeStage(UUID workspaceId, UUID leadId, Lead.Stage stage) {
+        actions.info("Service method started: LeadService.changeStage workspaceId={} leadId={} stage={}", workspaceId, leadId, stage);
+        var workspace=workspaces.lock(workspaceId).orElseThrow(ApiException::workspaceRequired);
+        var now=clock.instant();
+        if(!now.isBefore(workspace.expiresAt())) throw ApiException.workspaceRequired();
+        var existing=leads.find(workspaceId,leadId)
+                .orElseThrow(() -> new ApiException(404,"LEAD_NOT_FOUND","Lead not found in this workspace."));
+        if(existing.stage()==stage) return existing;
+        if(leads.updateStage(workspaceId,leadId,stage,now)!=1) throw new IllegalStateException("Lead changed during locked stage update");
+        var updated=new Lead(existing.id(),existing.workspaceId(),existing.name(),existing.company(),existing.serviceInterest(),
+                existing.source(),existing.estimatedValue(),existing.contactPreference(),stage,existing.priority(),
+                existing.createdAt(),now,now);
+        recordActivity(new ActivityEvent(UUID.randomUUID(),workspaceId,leadId,ActivityEvent.Type.LEAD_STAGE_CHANGED,
+                "Changed lead stage from "+existing.stage()+" to "+stage+".",now));
+        actions.afterCommit(() -> actions.info("Lead {} + {} stage changed from {} to {}",updated.name(),updated.id(),existing.stage(),stage));
+        return updated;
     }
 
     private void recordActivity(ActivityEvent event) {

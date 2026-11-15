@@ -54,6 +54,61 @@ class CrmApiTest {
         assertThat(activity).allSatisfy(event -> assertThat(event).containsEntry("leadId",id).doesNotContainKey("workspaceId"));
         assertNoStore(created);
     }
+    @Test void replacesLeadFieldsAndChangesStageWithNoStoreResponses() throws Exception {
+        var client=new HttpTestClient(port);var session=client.get("/api/demo/session").json();
+        var created=client.post("/api/demo/leads",valid(),session);
+        var updatedBody=new LinkedHashMap<String,Object>();
+        updatedBody.put("name","Updated Sam");updatedBody.put("company","Updated Co");
+        updatedBody.put("serviceInterest","CUSTOM_APPLICATION");updatedBody.put("source","SOCIAL_MEDIA");
+        updatedBody.put("estimatedValue",999.99);updatedBody.put("contactPreference",null);
+        var csrf=Map.of((String)session.get("csrfHeaderName"),(String)session.get("csrfToken"));
+        var updated=client.send("PUT","/api/demo/leads/"+created.json().get("id"),updatedBody,csrf);
+        assertThat(updated.status()).isEqualTo(200);
+        assertThat(updated.json()).containsEntry("name","Updated Sam").containsEntry("company","Updated Co")
+                .containsEntry("priority","LOW").containsEntry("stage","NEW");
+        assertNoStore(updated);
+
+        var stage=client.send("PATCH","/api/demo/leads/"+created.json().get("id")+"/stage",Map.of("stage","WON"),csrf);
+        assertThat(stage.status()).isEqualTo(200);
+        assertThat(stage.json()).containsEntry("stage","WON");
+        assertNoStore(stage);
+        assertThat(client.get("/api/demo/tasks").items()).singleElement().satisfies(task -> assertThat(task).containsEntry("status","OPEN"));
+        assertThat(client.get("/api/demo/activity").items()).extracting(event -> event.get("type"))
+                .contains("LEAD_UPDATED","PRIORITY_ASSIGNED","LEAD_STAGE_CHANGED");
+    }
+
+    @Test void completesTaskAndRejectsUnsupportedTaskStatus() throws Exception {
+        var client=new HttpTestClient(port);var session=client.get("/api/demo/session").json();
+        var lead=client.post("/api/demo/leads",valid(),session);
+        var taskId=client.get("/api/demo/tasks").items().getFirst().get("id");
+        var csrf=Map.of((String)session.get("csrfHeaderName"),(String)session.get("csrfToken"));
+
+        var completed=client.send("PATCH","/api/demo/tasks/"+taskId+"/status",Map.of("status","COMPLETED"),csrf);
+        assertThat(completed.status()).isEqualTo(200);
+        assertThat(completed.json()).containsEntry("status","COMPLETED").containsEntry("completedAt","2026-11-11T12:00:00Z");
+        assertNoStore(completed);
+        assertThat(client.get("/api/demo/tasks").items()).singleElement().satisfies(task ->
+                assertThat(task).containsEntry("status","COMPLETED").containsEntry("leadId",lead.json().get("id")));
+
+        var rejected=client.send("PATCH","/api/demo/tasks/"+taskId+"/status",Map.of("status","OPEN"),csrf);
+        assertThat(rejected.status()).isEqualTo(400);
+        assertThat(rejected.json()).containsEntry("code","INVALID_REQUEST");
+        assertThat(((Map<?,?>)rejected.json().get("fieldErrors")).containsKey("status")).isTrue();
+    }
+
+    @Test void hidesForeignTaskAndRequiresCsrfForMutations() throws Exception {
+        var owner=new HttpTestClient(port);var ownerSession=owner.get("/api/demo/session").json();
+        owner.post("/api/demo/leads",valid(),ownerSession);
+        var taskId=owner.get("/api/demo/tasks").items().getFirst().get("id");
+        var other=new HttpTestClient(port);var otherSession=other.get("/api/demo/session").json();
+        var csrf=Map.of((String)otherSession.get("csrfHeaderName"),(String)otherSession.get("csrfToken"));
+        var hidden=other.send("PATCH","/api/demo/tasks/"+taskId+"/status",Map.of("status","COMPLETED"),csrf);
+        assertThat(hidden.status()).isEqualTo(404);
+        assertThat(hidden.json()).containsEntry("code","TASK_NOT_FOUND");
+        var rejected=owner.send("PATCH","/api/demo/tasks/"+taskId+"/status",Map.of("status","COMPLETED"),Map.of());
+        assertThat(rejected.status()).isEqualTo(403);
+        assertThat(rejected.json()).containsEntry("code","CSRF_INVALID");
+    }
     @Test void otherVisitorCannotRetrieveLead() throws Exception {
         var a=new HttpTestClient(port);var sa=a.get("/api/demo/session").json();var created=a.post("/api/demo/leads",valid(),sa);
         var b=new HttpTestClient(port);b.get("/api/demo/session");
@@ -105,7 +160,11 @@ class CrmApiTest {
         var client=new HttpTestClient(port);var session=client.get("/api/demo/session").json();
         for(Object value:List.of("UNRECOGNIZED",0)) {
             var data=valid();data.put(field,value);
-            assertThat(client.post("/api/demo/leads",data,session).status()).isEqualTo(400);
+            var rejected=client.post("/api/demo/leads",data,session);
+            assertThat(rejected.status()).isEqualTo(400);
+            assertThat(rejected.json()).containsEntry("message","One or more enum values are invalid.");
+            assertThat(((Map<?,?>)rejected.json().get("fieldErrors")).containsKey(field)).isTrue();
+            assertThat(rejected.json().get("message").toString()).doesNotContain("UNRECOGNIZED");
         }
     }
     @Test void returnsFieldErrorsForInvalidValues() throws Exception {

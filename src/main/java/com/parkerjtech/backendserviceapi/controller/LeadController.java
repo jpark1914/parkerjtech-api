@@ -20,6 +20,16 @@ public class LeadController {
         var lead=leads.create(sessions.requireWorkspaceId(request),body.toCommand());
         return ResponseEntity.created(URI.create("/api/demo/leads/"+lead.id())).cacheControl(CacheControl.noStore()).body(LeadResponse.from(lead));
     }
+    @PutMapping("/{id}")
+    public ResponseEntity<LeadResponse> update(@PathVariable UUID id,@Valid @RequestBody CreateLeadRequest body,HttpServletRequest request) {
+        var lead=leads.update(sessions.requireWorkspaceId(request),id,body.toCommand());
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(LeadResponse.from(lead));
+    }
+    @PatchMapping("/{id}/stage")
+    public ResponseEntity<LeadResponse> changeStage(@PathVariable UUID id,@Valid @RequestBody ChangeLeadStageRequest body,HttpServletRequest request) {
+        var lead=leads.changeStage(sessions.requireWorkspaceId(request),id,body.stage());
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(LeadResponse.from(lead));
+    }
     @GetMapping
     public ItemsResponse<LeadResponse> list(HttpServletRequest request) {
         return new ItemsResponse<>(leads.list(sessions.requireWorkspaceId(request)).stream().map(LeadResponse::from).toList());

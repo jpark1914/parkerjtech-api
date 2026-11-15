@@ -10,4 +10,8 @@ public final class JdbcValues {
     public static Instant instant(ResultSet row, String column) throws SQLException {
         return row.getObject(column, OffsetDateTime.class).toInstant();
     }
+    public static Instant nullableInstant(ResultSet row, String column) throws SQLException {
+        OffsetDateTime value = row.getObject(column, OffsetDateTime.class);
+        return value == null ? null : value.toInstant();
+    }
 }

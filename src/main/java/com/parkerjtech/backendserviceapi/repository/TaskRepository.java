@@ -22,7 +22,7 @@ public class TaskRepository {
     public TaskRepository(NamedParameterJdbcTemplate jdbc, SqlQueries sql, CrmActionLogger actions) { this.jdbc=jdbc; this.sql=sql; this.actions=actions; }
     private static final RowMapper<CrmTask> ROW=(r,n) -> new CrmTask(r.getObject("id",UUID.class),r.getObject("workspace_id",UUID.class),
         r.getObject("lead_id",UUID.class),r.getString("description"),instant(r,"due_at"),CrmTask.Status.valueOf(r.getString("status")),
-        r.getString("automation_rule_key"),instant(r,"created_at"));
+        r.getString("automation_rule_key"),instant(r,"created_at"),nullableInstant(r,"completed_at"));
     /** Serialized by the caller's workspace row lock; uniqueness also enforced by the database. */
     @org.springframework.transaction.annotation.Transactional(propagation=org.springframework.transaction.annotation.Propagation.MANDATORY)
     public boolean insertInitialIfAbsent(CrmTask task) {
@@ -32,9 +32,20 @@ public class TaskRepository {
         int inserted=jdbc.update(sql.require("task.insertInitialIfAbsent"),new MapSqlParameterSource("id",task.id())
             .addValue("workspaceId",task.workspaceId()).addValue("leadId",task.leadId()).addValue("description",task.description())
             .addValue("dueAt",at(task.dueAt())).addValue("status",task.status().name())
-            .addValue("automationRuleKey",task.automationRuleKey()).addValue("createdAt",at(task.createdAt())));
+            .addValue("automationRuleKey",task.automationRuleKey()).addValue("createdAt",at(task.createdAt()))
+            .addValue("completedAt",task.completedAt()==null?null:at(task.completedAt())));
         if(inserted==1) return true;
         throw new DataIntegrityViolationException("Task lead does not belong to workspace");
+    }
+    public Optional<CrmTask> find(UUID workspaceId, UUID taskId) {
+        actions.info("Repository method started: TaskRepository.find workspaceId={} taskId={}", workspaceId, taskId);
+        return jdbc.query(sql.require("task.find"),new MapSqlParameterSource("workspaceId",workspaceId).addValue("id",taskId),ROW)
+                .stream().findFirst();
+    }
+    public int complete(UUID workspaceId, UUID taskId, java.time.Instant completedAt) {
+        actions.info("Repository method started: TaskRepository.complete workspaceId={} taskId={}", workspaceId, taskId);
+        return jdbc.update(sql.require("task.complete"),new MapSqlParameterSource("workspaceId",workspaceId)
+                .addValue("id",taskId).addValue("completedAt",at(completedAt)));
     }
     public List<CrmTask> list(UUID workspaceId) {
         actions.info("Repository method started: TaskRepository.list workspaceId={}", workspaceId);

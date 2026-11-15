@@ -48,7 +48,7 @@ class JdbcRepositoriesTest {
     @Test void rejectsTaskForOtherWorkspaceWithoutSwallowingFailure() {
         var a=workspace(workspaces,NOW); var b=workspace(workspaces,NOW);
         var lead=lead(leads,a,NOW,"Fictional Sam",new BigDecimal("10.00"));
-        var bad=new CrmTask(UUID.randomUUID(),b.id(),lead.id(),"Demo",NOW,CrmTask.Status.OPEN,"INITIAL_FOLLOW_UP",NOW);
+        var bad=new CrmTask(UUID.randomUUID(),b.id(),lead.id(),"Demo",NOW,CrmTask.Status.OPEN,"INITIAL_FOLLOW_UP",NOW,null);
         assertThatThrownBy(() -> tasks.insertInitialIfAbsent(bad)).isInstanceOf(DataIntegrityViolationException.class);
         assertThat(tasks.list(a.id())).isEmpty();
     }
@@ -70,6 +70,28 @@ class JdbcRepositoriesTest {
         for(var type:new ActivityEvent.Type[]{ActivityEvent.Type.FOLLOW_UP_CREATED,ActivityEvent.Type.PRIORITY_ASSIGNED,ActivityEvent.Type.LEAD_CREATED}) activity.insert(event(lead,type));
         assertThat(activity.list(a.id())).extracting(ActivityEvent::type).containsExactly(ActivityEvent.Type.LEAD_CREATED,ActivityEvent.Type.PRIORITY_ASSIGNED,ActivityEvent.Type.FOLLOW_UP_CREATED);
         assertThat(activity.list(b.id())).isEmpty();
+    }
+    @Test void updatesLeadsAndCompletesTasksWithWorkspaceScopedQueries() {
+        var a=workspace(workspaces,NOW);var b=workspace(workspaces,NOW);
+        var lead=lead(leads,a,NOW,"Fictional Sam",new BigDecimal("1000.00"));
+        var updated=new Lead(lead.id(),lead.workspaceId(),lead.name(),"Updated Co",lead.serviceInterest(),lead.source(),
+                lead.estimatedValue(),lead.contactPreference(),lead.stage(),Lead.Priority.HIGH,lead.createdAt(),NOW.plusSeconds(1),NOW.plusSeconds(1));
+        assertThat(leads.updateBusinessFields(updated)).isEqualTo(1);
+        assertThat(leads.updateBusinessFields(new Lead(lead.id(),b.id(),lead.name(),lead.company(),lead.serviceInterest(),
+                lead.source(),lead.estimatedValue(),lead.contactPreference(),lead.stage(),lead.priority(),lead.createdAt(),NOW,NOW))).isZero();
+        assertThat(leads.find(a.id(),lead.id())).contains(updated);
+        assertThat(leads.updateStage(a.id(),lead.id(),Lead.Stage.QUALIFIED,NOW.plusSeconds(2))).isEqualTo(1);
+        assertThat(leads.find(a.id(),lead.id()).orElseThrow().stage()).isEqualTo(Lead.Stage.QUALIFIED);
+
+        workspaces.lock(a.id());
+        var task=task(lead);
+        assertThat(tasks.insertInitialIfAbsent(task)).isTrue();
+        assertThat(tasks.find(b.id(),task.id())).isEmpty();
+        var completedAt=NOW.plusSeconds(3);
+        assertThat(tasks.complete(a.id(),task.id(),completedAt)).isEqualTo(1);
+        assertThat(tasks.complete(b.id(),task.id(),completedAt)).isZero();
+        assertThat(tasks.find(a.id(),task.id()).orElseThrow()).isEqualTo(new CrmTask(task.id(),task.workspaceId(),task.leadId(),
+                task.description(),task.dueAt(),CrmTask.Status.COMPLETED,task.automationRuleKey(),task.createdAt(),completedAt));
     }
     @Test void sortsLeadsNewestFirst() {
         var a=workspace(workspaces,NOW);

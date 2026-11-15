@@ -26,8 +26,11 @@ Send the cookie on subsequent requests. For mutations also send the token under 
 | --- | --- | --- |
 | GET | `/session` | 200, workspace metadata and CSRF token |
 | POST | `/leads` | 201, created lead and Location header |
+| PUT | `/leads/{id}` | 200, complete updated lead |
+| PATCH | `/leads/{id}/stage` | 200, lead with updated stage |
 | GET | `/leads` | 200, `{ "items": [...] }` |
 | GET | `/leads/{id}` | 200, one lead |
+| PATCH | `/tasks/{id}/status` | 200, completed task |
 | GET | `/tasks` | 200, `{ "items": [...] }` |
 | GET | `/activity` | 200, `{ "items": [...] }` |
 
@@ -57,9 +60,48 @@ The lead response includes the input fields plus `id`, `stage`, `priority`, `cre
 
 All new leads start NEW. Priority is HIGH for value >= 5000, MEDIUM for value >= 1000 and < 5000, and LOW below 1000. One transaction creates the lead, one OPEN task with rule key `INITIAL_FOLLOW_UP` due 24 hours after creation, and three events: `LEAD_CREATED`, `PRIORITY_ASSIGNED`, `FOLLOW_UP_CREATED`.
 
-Task responses contain `id`, `leadId`, `description`, `dueAt`, `status`, `automationRuleKey`, `createdAt`. Activity contains `id`, `leadId`, `type`, `description`, `createdAt`. Descriptions explain the priority threshold and that no message was sent. Lists are scoped and bounded by the 100-lead capacity. Leads sort newest first then ID; tasks by due time then ID; activity chronologically, with a lead's equal-time events in creation/priority/follow-up order.
+## Lead editing and stages
 
-Repeated POSTs create additional leads. Initial-task deduplication is separate from HTTP request idempotency. A task's due date can outlast its temporary workspace; this iteration demonstrates generation only.
+`PUT /api/demo/leads/{id}` replaces all editable business fields using the same fields, validation, enum names, and whitespace normalization as lead creation. Name, company, service interest, source, and estimated value are required. `contactPreference` may be omitted or null to clear it. Unknown fields such as `stage`, `priority`, IDs, ownership, and timestamps are rejected. The response is the complete `LeadResponse`; stage, identity, ownership, and creation time remain unchanged. Priority is recalculated from the new estimated value.
+
+```json
+{
+  "name": "Alex Morgan",
+  "company": "Demo Services",
+  "serviceInterest": "BUSINESS_AUTOMATION",
+  "source": "REFERRAL",
+  "estimatedValue": 7500.00,
+  "contactPreference": "EMAIL"
+}
+```
+
+A changed edit records `LEAD_UPDATED` with changed field names. If priority changes, it also records `PRIORITY_ASSIGNED` after `LEAD_UPDATED`, including the threshold reason. An identical normalized edit returns the existing lead and preserves timestamps and activity. Editing does not create a task or change its due date.
+
+`PATCH /api/demo/leads/{id}/stage` accepts exactly one required field, `stage`, with one of `NEW`, `CONTACTED`, `QUALIFIED`, `WON`, or `LOST`:
+
+```json
+{ "stage": "QUALIFIED" }
+```
+
+Any stage can be changed to any other stage, including moving back from WON or LOST. A real transition records one `LEAD_STAGE_CHANGED` event with the old and new values. Setting the current stage succeeds as a no-op without changing timestamps or activity. Stage changes do not create, complete, or cancel tasks.
+
+## Follow-up completion
+
+`PATCH /api/demo/tasks/{id}/status` accepts only `COMPLETED`:
+
+```json
+{ "status": "COMPLETED" }
+```
+
+An OPEN follow-up becomes COMPLETED and receives a UTC `completedAt`. The response and `GET /api/demo/tasks` include the nullable `completedAt` field (`null` while OPEN). Task identity, description, due date, rule key, and creation time are preserved. Completing after the due time is allowed while the workspace is active. Repeating completion returns the original completion timestamp without another activity event or timestamp update.
+
+Completion records `FOLLOW_UP_COMPLETED` for the lead associated with the persisted task and updates that lead's `updatedAt` and `lastActivityAt`. It does not change the lead stage. `GET /api/demo/tasks` returns OPEN and COMPLETED tasks ordered by due time, then ID.
+
+Activity responses contain `id`, `leadId`, `type`, `description`, and `createdAt`. Event types are `LEAD_CREATED`, `PRIORITY_ASSIGNED`, `FOLLOW_UP_CREATED`, `LEAD_UPDATED`, `LEAD_STAGE_CHANGED`, and `FOLLOW_UP_COMPLETED`. Activities are ordered chronologically, then by lead and operation order; for equal-time edit events, `LEAD_UPDATED` precedes its priority reassignment. Lists remain scoped to the current workspace and bounded by the 100-lead capacity.
+
+When selecting the next action, use OPEN tasks; COMPLETED tasks remain available in the task list as history.
+
+Repeated POSTs create additional leads. Initial-task deduplication is separate from HTTP request idempotency. After a successful mutation, the frontend must refresh leads, tasks, and activity. Do not silently replay a mutation into a newly bootstrapped workspace, and do not automatically retry an ambiguous failed lead-creation POST; POST retries can create duplicate leads.
 
 ## Errors
 
@@ -71,6 +113,7 @@ Problem Details JSON includes `status`, safe `detail`, a client-ready `message` 
 | 401 | `WORKSPACE_REQUIRED` | Bootstrap missing, invalid or expired |
 | 403 | `CSRF_INVALID` | Missing/invalid token on a mutation |
 | 404 | `LEAD_NOT_FOUND` | Lead unavailable in the current workspace |
+| 404 | `TASK_NOT_FOUND` | Follow-up task unavailable in the current workspace |
 | 409 | `WORKSPACE_LIMIT_REACHED` | Workspace has 100 leads |
 | 500 | `INTERNAL_ERROR` | Unexpected failure, without SQL/stack details |
 
@@ -90,6 +133,6 @@ This executable walkthrough uses `curl -c`/`-b` with temporary cookie jars, extr
 
 Expiry is 24 hours after workspace creation, checked on domain requests. Cleanup runs every 15 minutes in batches of up to 100 workspaces, deleting child records before the parent under a workspace lock. Expired access is denied before physical cleanup. Spring Session cleans its own expired records. Bootstrap after expiry starts empty.
 
-The future React app should proxy `/api` for same-origin requests, including during development. Bootstrap, retain cookie/token, then refresh leads/tasks/activity after creation. Keep tokens in client memory and refresh through bootstrap as needed. CORS stays closed by default; inspect `jordan-portfolio` before configuring an explicit origin. No React files were changed.
+The future React app should proxy `/api` for same-origin requests, including during development. Bootstrap, retain the cookie/token, and send the returned CSRF token under the returned header name on every mutation. After successful mutations refresh leads, tasks, and activity. Keep tokens in client memory and bootstrap again after a 401; do not silently replay a mutation into the newly bootstrapped workspace. Do not automatically retry an ambiguous failed create POST. CORS stays closed by default; inspect `jordan-portfolio` before configuring an explicit origin. No React files were changed.
 
-Public launch needs separate hosting, HTTPS, rate-limit and request-limit verification. Editing, transitions, time simulation, reset, seeding, metrics and outbound notifications remain deferred.
+Public launch needs separate hosting, HTTPS, rate-limit and request-limit verification. Time simulation, reset, seeding, metrics and outbound notifications remain deferred.

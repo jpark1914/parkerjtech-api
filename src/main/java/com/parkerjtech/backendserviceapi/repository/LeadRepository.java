@@ -48,6 +48,26 @@ public class LeadRepository {
         actions.info("Repository method started: LeadRepository.count workspaceId={}", workspaceId);
         return jdbc.queryForObject(sql.require("lead.count"),new MapSqlParameterSource("workspaceId",workspaceId),Integer.class);
     }
+    public int updateBusinessFields(Lead lead) {
+        actions.info("Repository method started: LeadRepository.updateBusinessFields leadId={} workspaceId={}", lead.id(), lead.workspaceId());
+        return jdbc.update(sql.require("lead.updateBusinessFields"),new MapSqlParameterSource("id",lead.id())
+            .addValue("workspaceId",lead.workspaceId()).addValue("name",lead.name()).addValue("company",lead.company())
+            .addValue("serviceInterest",lead.serviceInterest().name()).addValue("source",lead.source().name())
+            .addValue("estimatedValue",lead.estimatedValue()).addValue("contactPreference",lead.contactPreference()==null?null:lead.contactPreference().name())
+            .addValue("priority",lead.priority().name()).addValue("updatedAt",at(lead.updatedAt()))
+            .addValue("lastActivityAt",at(lead.lastActivityAt())));
+    }
+    public int updateStage(UUID workspaceId, UUID leadId, Lead.Stage stage, java.time.Instant updatedAt) {
+        actions.info("Repository method started: LeadRepository.updateStage leadId={} stage={}", leadId, stage);
+        return jdbc.update(sql.require("lead.updateStage"),new MapSqlParameterSource("workspaceId",workspaceId)
+            .addValue("id",leadId).addValue("stage",stage.name()).addValue("updatedAt",at(updatedAt))
+            .addValue("lastActivityAt",at(updatedAt)));
+    }
+    public int touchActivity(UUID workspaceId, UUID leadId, java.time.Instant updatedAt) {
+        actions.info("Repository method started: LeadRepository.touchActivity leadId={} workspaceId={}", leadId, workspaceId);
+        return jdbc.update(sql.require("lead.touchActivity"),new MapSqlParameterSource("workspaceId",workspaceId)
+            .addValue("id",leadId).addValue("updatedAt",at(updatedAt)).addValue("lastActivityAt",at(updatedAt)));
+    }
     public int deleteByWorkspace(UUID workspaceId) {
         actions.info("Repository method started: LeadRepository.deleteByWorkspace workspaceId={}", workspaceId);
         return jdbc.update(sql.require("lead.deleteByWorkspace"),new MapSqlParameterSource("workspaceId",workspaceId));

@@ -1,6 +1,6 @@
 # Parker J Tech API
 
-Spring Boot backend for Parker J Tech's Smart CRM demo. This first iteration supports anonymous visitor workspaces, fictional lead intake, deterministic priority, follow-up tasks, and activity history. It will connect to the `jordan-portfolio` React application in a later iteration.
+Spring Boot backend for Parker J Tech's Smart CRM demo. The API supports anonymous visitor workspaces, fictional lead intake and editing, sales-stage changes, follow-up completion, deterministic priority, and activity history. It will connect to the `jordan-portfolio` React application in a later iteration.
 
 ## Run locally
 
@@ -82,6 +82,9 @@ Action logs cover each endpoint and the main service sub-actions:
 | --- | --- |
 | Initialize/recover demo session | Created or recovered workspace ID and expiration for new workspaces |
 | Create a lead | Input/capacity checks, name + ID, assigned priority, follow-up task ID/status/deadline, each activity event type/ID |
+| Edit a lead | Changed field names, lead name + ID, priority reassignment when applicable |
+| Change a lead stage | Lead name + ID and old/new stage |
+| Complete a follow-up | Task ID and associated lead ID, logged only after commit |
 | Retrieve one lead or list leads | Name + ID for each lead and list count, including empty lists |
 | Retrieve tasks | Count, task IDs, related lead IDs, status and deadline |
 | Retrieve activity | Count, event IDs/types and related lead IDs |
@@ -112,9 +115,9 @@ Application runtime SQL lives in `src/main/resources/sqlqueries.props`, loaded e
 - Each anonymous cookie session starts with an empty workspace and an absolute 24-hour lifetime. Tabs sharing the cookie share the workspace.
 - Creating a lead assigns priority, creates one internal follow-up task, and records three activity events in one transaction. No email or external message is sent.
 - Workspaces allow up to 100 leads. Expired access is denied immediately; scheduled cleanup deletes expired domain records in bounded batches every 15 minutes.
-- A follow-up is due 24 hours after creation, so its deadline can outlast the temporary workspace. This iteration demonstrates task generation only.
+- A follow-up is due 24 hours after creation. It can be completed while its workspace is active; expired workspaces remain inaccessible and are removed by cleanup.
 - Repeating a POST creates another lead. Task-rule deduplication is separate from HTTP request idempotency.
 
-React integration, status transitions, sample data, search/editing, simulated time, reset, analytics, outbound notifications, and deployment are deferred. Before public launch, verify hosting capacity, HTTPS/proxy configuration, request limits and global abuse controls. The API currently targets local demonstrations.
+React integration, sample data, search, simulated time, reset, analytics, outbound notifications, and deployment are deferred. Before public launch, verify hosting capacity, HTTPS/proxy configuration, request limits and global abuse controls. The API currently targets local demonstrations.
 
 [Approved design](docs/superpowers/specs/2026-11-11-smart-crm-first-iteration-design.md) · [Implementation plan](docs/superpowers/plans/2026-11-11-smart-crm-first-iteration.md)

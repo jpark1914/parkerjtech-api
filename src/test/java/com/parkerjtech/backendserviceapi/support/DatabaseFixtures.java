@@ -27,7 +27,7 @@ public final class DatabaseFixtures {
     }
     public static CrmTask task(Lead lead) {
         return new CrmTask(UUID.randomUUID(), lead.workspaceId(), lead.id(), "Internal follow-up; no message sent",
-            lead.createdAt().plus(Duration.ofHours(24)), CrmTask.Status.OPEN, "INITIAL_FOLLOW_UP", lead.createdAt());
+            lead.createdAt().plus(Duration.ofHours(24)), CrmTask.Status.OPEN, "INITIAL_FOLLOW_UP", lead.createdAt(), null);
     }
     public static ActivityEvent event(Lead lead, ActivityEvent.Type type) {
         return new ActivityEvent(UUID.randomUUID(), lead.workspaceId(), lead.id(), type, "Demo activity", lead.createdAt());

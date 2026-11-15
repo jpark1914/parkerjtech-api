@@ -9,9 +9,14 @@ lead.list=SELECT * FROM crm_lead WHERE workspace_id=:workspaceId ORDER BY create
 lead.find=SELECT * FROM crm_lead WHERE workspace_id=:workspaceId AND id=:id
 lead.count=SELECT COUNT(*) FROM crm_lead WHERE workspace_id=:workspaceId
 lead.deleteByWorkspace=DELETE FROM crm_lead WHERE workspace_id=:workspaceId
-task.insertInitialIfAbsent=INSERT INTO crm_task (id,workspace_id,lead_id,description,due_at,status,automation_rule_key,created_at) SELECT :id,:workspaceId,:leadId,:description,:dueAt,:status,:automationRuleKey,:createdAt FROM crm_lead WHERE id=:leadId AND workspace_id=:workspaceId AND NOT EXISTS (SELECT 1 FROM crm_task WHERE workspace_id=:workspaceId AND lead_id=:leadId AND automation_rule_key=:automationRuleKey)
+task.insertInitialIfAbsent=INSERT INTO crm_task (id,workspace_id,lead_id,description,due_at,status,automation_rule_key,created_at,completed_at) SELECT :id,:workspaceId,:leadId,:description,:dueAt,:status,:automationRuleKey,:createdAt,:completedAt FROM crm_lead WHERE id=:leadId AND workspace_id=:workspaceId AND NOT EXISTS (SELECT 1 FROM crm_task WHERE workspace_id=:workspaceId AND lead_id=:leadId AND automation_rule_key=:automationRuleKey)
+task.find=SELECT * FROM crm_task WHERE workspace_id=:workspaceId AND id=:id
+task.complete=UPDATE crm_task SET status='COMPLETED',completed_at=:completedAt WHERE workspace_id=:workspaceId AND id=:id AND status='OPEN'
 task.list=SELECT * FROM crm_task WHERE workspace_id=:workspaceId ORDER BY due_at,id
 task.deleteByWorkspace=DELETE FROM crm_task WHERE workspace_id=:workspaceId
 activity.insert=INSERT INTO crm_activity_event (id,workspace_id,lead_id,type,description,created_at) SELECT :id,:workspaceId,:leadId,:type,:description,:createdAt FROM crm_lead WHERE id=:leadId AND workspace_id=:workspaceId
-activity.list=SELECT * FROM crm_activity_event WHERE workspace_id=:workspaceId ORDER BY created_at,lead_id,CASE type WHEN 'LEAD_CREATED' THEN 0 WHEN 'PRIORITY_ASSIGNED' THEN 1 ELSE 2 END,id
+activity.list=SELECT * FROM crm_activity_event WHERE workspace_id=:workspaceId ORDER BY created_at,lead_id,CASE type WHEN 'LEAD_CREATED' THEN 0 WHEN 'LEAD_UPDATED' THEN 1 WHEN 'LEAD_STAGE_CHANGED' THEN 2 WHEN 'PRIORITY_ASSIGNED' THEN 3 WHEN 'FOLLOW_UP_CREATED' THEN 4 WHEN 'FOLLOW_UP_COMPLETED' THEN 5 ELSE 6 END,id
 activity.deleteByWorkspace=DELETE FROM crm_activity_event WHERE workspace_id=:workspaceId
+lead.updateBusinessFields=UPDATE crm_lead SET name=:name,company=:company,service_interest=:serviceInterest,source=:source,estimated_value=:estimatedValue,contact_preference=:contactPreference,priority=:priority,updated_at=:updatedAt,last_activity_at=:lastActivityAt WHERE workspace_id=:workspaceId AND id=:id
+lead.updateStage=UPDATE crm_lead SET stage=:stage,updated_at=:updatedAt,last_activity_at=:lastActivityAt WHERE workspace_id=:workspaceId AND id=:id
+lead.touchActivity=UPDATE crm_lead SET updated_at=:updatedAt,last_activity_at=:lastActivityAt WHERE workspace_id=:workspaceId AND id=:id

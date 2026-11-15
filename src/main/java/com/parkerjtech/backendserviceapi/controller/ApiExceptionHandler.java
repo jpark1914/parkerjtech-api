@@ -84,7 +84,12 @@ public class ApiExceptionHandler {
                     return originalEnumMessage(cause);
                 }
                 for (Object reference : references) {
-                    Object fieldName = reference.getClass().getMethod("getFieldName").invoke(reference);
+                    Object fieldName;
+                    try {
+                        fieldName = reference.getClass().getMethod("getPropertyName").invoke(reference);
+                    } catch (NoSuchMethodException ignored) {
+                        fieldName = reference.getClass().getMethod("getFieldName").invoke(reference);
+                    }
                     if (fieldName instanceof String field && !field.isBlank()) {
                         String accepted = java.util.Arrays.stream(enumType.getEnumConstants())
                                 .map(Object::toString).collect(java.util.stream.Collectors.joining(", "));
